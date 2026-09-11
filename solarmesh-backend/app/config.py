@@ -12,8 +12,11 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 120
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
-    # Postgres
-    POSTGRES_HOST: str = "localhost"
+    # Database
+    # Defaults to SQLite for zero-dependency local dev (no Docker required).
+    # Can be set to PostgreSQL (e.g. Neon, Supabase, Render) via DATABASE_URL or POSTGRES_HOST.
+    DATABASE_URL: str | None = None
+    POSTGRES_HOST: str | None = None
     POSTGRES_PORT: int = 5432
     POSTGRES_USER: str = "solarmesh"
     POSTGRES_PASSWORD: str = "solarmesh_dev_pw"
@@ -31,10 +34,19 @@ class Settings(BaseSettings):
 
     @property
     def database_url(self) -> str:
-        return (
-            f"postgresql+psycopg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}"
-            f"@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
-        )
+        if self.DATABASE_URL:
+            url = self.DATABASE_URL
+            if url.startswith("postgres://"):
+                url = url.replace("postgres://", "postgresql+psycopg://", 1)
+            elif url.startswith("postgresql://") and "+psycopg" not in url:
+                url = url.replace("postgresql://", "postgresql+psycopg://", 1)
+            return url
+        if self.POSTGRES_HOST:
+            return (
+                f"postgresql+psycopg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}"
+                f"@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+            )
+        return "sqlite:///./solarmesh.db"
 
 
 @lru_cache

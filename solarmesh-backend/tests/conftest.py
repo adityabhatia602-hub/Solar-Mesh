@@ -22,21 +22,24 @@ TestSession = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 
 @pytest.fixture(scope="session", autouse=True)
 def _create_tables():
-    # Ensure the test database exists (against the default 'postgres' DB), then create tables.
-    admin_url = (
-        f"postgresql+psycopg://{settings.POSTGRES_USER}:{settings.POSTGRES_PASSWORD}"
-        f"@{settings.POSTGRES_HOST}:{settings.POSTGRES_PORT}/postgres"
-    )
-    from sqlalchemy import create_engine
-
-    admin_engine = create_engine(admin_url, isolation_level="AUTOCOMMIT")
-    with admin_engine.connect() as conn:
-        exists = conn.execute(
-            text("SELECT 1 FROM pg_database WHERE datname = :d"), {"d": settings.POSTGRES_DB}
-        ).scalar()
-        if not exists:
-            conn.execute(text(f'CREATE DATABASE "{settings.POSTGRES_DB}"'))
-    admin_engine.dispose()
+    # If a PostgreSQL database is configured, ensure the test database exists
+    if "postgresql" in settings.database_url and settings.POSTGRES_HOST:
+        admin_url = (
+            f"postgresql+psycopg://{settings.POSTGRES_USER}:{settings.POSTGRES_PASSWORD}"
+            f"@{settings.POSTGRES_HOST}:{settings.POSTGRES_PORT}/postgres"
+        )
+        try:
+            from sqlalchemy import create_engine
+            admin_engine = create_engine(admin_url, isolation_level="AUTOCOMMIT")
+            with admin_engine.connect() as conn:
+                exists = conn.execute(
+                    text("SELECT 1 FROM pg_database WHERE datname = :d"), {"d": settings.POSTGRES_DB}
+                ).scalar()
+                if not exists:
+                    conn.execute(text(f'CREATE DATABASE "{settings.POSTGRES_DB}"'))
+            admin_engine.dispose()
+        except Exception:
+            pass
 
     Base.metadata.create_all(bind=engine)
     yield

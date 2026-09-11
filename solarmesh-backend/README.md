@@ -12,20 +12,19 @@ Solar prosumers register devices on a modeled distribution grid, post offers to 
 - **WebSocket** live event stream
 - **pytest** test suite (17 tests)
 
-## Quick start
+## Quick start (Zero Docker required)
+
+By default, SolarMesh runs on a local SQLite database (`solarmesh.db`) out-of-the-box with zero Docker or database setup required. To connect to PostgreSQL (e.g. Neon, Supabase, local), simply set `DATABASE_URL=postgresql+psycopg://...` in `.env`.
 
 ```bash
-# 1. Start Postgres (Docker)
-docker compose up -d db
-
-# 2. Python env (needs 3.10+)
-python3.11 -m venv .venv
+# 1. Python env (needs 3.10+)
+python3 -m venv .venv
 ./.venv/bin/pip install -r requirements.txt
 
-# 3. Seed demo data (grid, users, devices, orders)
+# 2. Seed demo data (grid, users, devices, orders)
 ./.venv/bin/python -m scripts.seed
 
-# 4. Run the API
+# 3. Run the API
 ./.venv/bin/python -m uvicorn app.main:app --reload --port 8000
 ```
 
@@ -136,7 +135,6 @@ All authenticated endpoints: `Authorization: Bearer <access_token>`.
 ## Tests
 
 ```bash
-docker compose up -d db          # tests need Postgres
 ./.venv/bin/python -m pytest tests/ -q
 ```
 
