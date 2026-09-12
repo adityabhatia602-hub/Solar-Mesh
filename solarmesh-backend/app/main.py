@@ -5,8 +5,9 @@ import asyncio
 import contextlib
 import logging
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
 from app.config import settings
@@ -125,6 +126,15 @@ app.include_router(telemetry.router)
 app.include_router(trades.router)
 app.include_router(simulation.router)
 app.include_router(analytics.router)
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    logger.exception("Unhandled error on %s %s: %s", request.method, request.url.path, exc)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": f"Internal Server Error: {str(exc)}"},
+    )
 
 
 @app.get("/health", tags=["ops"])
