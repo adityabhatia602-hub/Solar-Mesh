@@ -18,6 +18,7 @@ from app.monitoring import alert_manager, metrics_collector
 from app.routers import (
     analytics,
     auth,
+    backups,
     grid,
     market,
     monitoring,
@@ -131,6 +132,7 @@ app.include_router(trades.router)
 app.include_router(simulation.router)
 app.include_router(analytics.router)
 app.include_router(monitoring.router)
+app.include_router(backups.router)
 
 
 @app.exception_handler(Exception)
