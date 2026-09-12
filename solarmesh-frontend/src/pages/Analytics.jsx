@@ -1,16 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   BarChart3,
   TrendingUp,
   Leaf,
   DollarSign,
   Zap,
-  ShieldCheck,
-  Calendar,
+  AlertTriangle,
+  Activity,
+  RefreshCw,
 } from 'lucide-react';
 import {
-  LineChart,
-  Line,
   BarChart,
   Bar,
   XAxis,
@@ -20,196 +19,225 @@ import {
   CartesianGrid,
   Legend,
 } from 'recharts';
+import { useMarket } from '../hooks/useMarket';
 import PageHeader from '../components/layout/PageHeader';
 import Card from '../components/common/Card';
 import StatCard from '../components/common/StatCard';
 import DemoSandboxDrawer from '../components/common/DemoSandboxDrawer';
-import { marketApi } from '../api/market';
-import { walletApi } from '../api/wallet';
+import { analyticsApi } from '../api/simulation';
 import { formatCurrency, formatKwh } from '../utils/formatters';
-import { CO2_KG_PER_KWH, UTILITY_GRID_TARIFF } from '../utils/constants';
+import { CO2_KG_PER_KWH } from '../utils/constants';
 
-const PRICE_TREND_DATA = [
-  { cycle: '08:00', clearingPrice: 0.152, utilityTariff: 0.28, volume: 18.4 },
-  { cycle: '10:00', clearingPrice: 0.141, utilityTariff: 0.28, volume: 32.1 },
-  { cycle: '12:00', clearingPrice: 0.128, utilityTariff: 0.28, volume: 54.6 },
-  { cycle: '14:00', clearingPrice: 0.134, utilityTariff: 0.28, volume: 46.2 },
-  { cycle: '16:00', clearingPrice: 0.165, utilityTariff: 0.28, volume: 29.8 },
-  { cycle: '18:00', clearingPrice: 0.198, utilityTariff: 0.28, volume: 14.5 },
-];
-
-const SUPPLY_DEMAND_DATA = [
-  { hour: '06:00', supply: 12, demand: 25 },
-  { hour: '09:00', supply: 48, demand: 32 },
-  { hour: '12:00', supply: 85, demand: 42 },
-  { hour: '15:00', supply: 64, demand: 48 },
-  { hour: '18:00', supply: 22, demand: 62 },
-  { hour: '21:00', supply: 4, demand: 50 },
-];
-
+/** Live analytics: all values derived from backend aggregates, no hardcoded data. */
 export const Analytics = () => {
-  const [wallet, setWallet] = useState(null);
-  const [trades, setTrades] = useState([]);
+  const { refreshCounter } = useMarket();
+  const [dash, setDash] = useState(null);
+  const [market, setMarket] = useState(null);
+  const [grid, setGrid] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
-      const [w, t] = await Promise.all([
-        walletApi.getWallet().catch(() => null),
-        marketApi.getMyTrades(100).catch(() => []),
+      setLoading(true);
+      const [d, m, g] = await Promise.all([
+        analyticsApi.getDashboard(24).catch(() => null),
+        analyticsApi.getMarket().catch(() => null),
+        analyticsApi.getGrid().catch(() => null),
       ]);
-      if (w) setWallet(w);
-      if (t) setTrades(t);
-    } catch (err) {
-      console.warn('Analytics loading warning:', err);
+      setDash(d);
+      setMarket(m);
+      setGrid(g);
+    } finally {
+      setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData, refreshCounter]);
 
-  const totalVolume = trades.reduce((acc, t) => acc + (t.quantity_kwh || 0), 0);
-  const totalValue = trades.reduce((acc, t) => acc + (t.total_amount || 0), 0);
-  const co2Avoided = Math.round(totalVolume * CO2_KG_PER_KWH);
+  const totalTraded = dash?.total_energy_traded_kwh ?? 0;
+  const co2Avoided = Math.round(totalTraded * CO2_KG_PER_KWH);
+  const timeseries = dash?.timeseries ?? [];
 
   return (
     <div className="space-y-6 sm:space-y-8">
       <PageHeader
         title="Energy Analytics & Green Impact"
-        subtitle="Track your solar production trends, utility bill savings, and carbon emission offsets"
+        subtitle="Platform-wide generation, trading volumes, losses, and carbon offsets (last 24h)"
+        actions={
+          <Button variant="secondary" size="sm" icon={RefreshCw} onClick={fetchData} isLoading={loading}>
+            Refresh
+          </Button>
+        }
       />
 
       {/* Aggregate KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           title="Clean Energy Traded"
-          value={formatKwh(totalVolume > 0 ? totalVolume : 195.5, 1)}
-          subtitle="Community solar volume"
+          value={formatKwh(totalTraded, 1)}
+          subtitle="Settled peer-to-peer volume"
           icon={Zap}
           accent="emerald"
-          trend="+28% this week"
-          trendDirection="up"
         />
-
         <StatCard
-          title="Total Value Traded"
-          value={formatCurrency(totalValue > 0 ? totalValue : 32.84)}
-          subtitle="Direct peer settlements"
+          title="Total Value Settled"
+          value={market ? formatCurrency(market.total_network_fees + totalTraded * (market.average_price || 0)) : '—'}
+          subtitle="Energy + network fees"
           icon={DollarSign}
           accent="blue"
-          trend="Instant Finality"
-          trendDirection="up"
         />
-
         <StatCard
-          title="Avoided CO2 Emissions"
-          value={co2Avoided > 0 ? co2Avoided : 160}
-          unit="kg CO2"
-          subtitle="Offsetting fossil grid power"
+          title="Energy Lost in Transit"
+          value={formatKwh(dash?.total_energy_lost_kwh ?? 0, 2)}
+          subtitle="Line losses on settled trades"
+          icon={Activity}
+          accent="amber"
+        />
+        <StatCard
+          title="CO2 Avoided"
+          value={co2Avoided}
+          unit="kg"
+          subtitle="vs fossil grid generation"
           icon={Leaf}
           accent="emerald"
-          trend="100% Green Energy"
-          trendDirection="up"
-        />
-
-        <StatCard
-          title="Cost Savings vs Utility"
-          value="37.4%"
-          subtitle={`vs standard ${formatCurrency(UTILITY_GRID_TARIFF)}/kWh tariff`}
-          icon={TrendingUp}
-          accent="amber"
-          trend="Significant Savings"
-          trendDirection="up"
         />
       </div>
 
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Chart 1: Price Clearing vs Standard Utility Tariff */}
+        {/* Chart 1: Generation vs Consumption (live timeseries) */}
         <Card
-          title="Local Solar Price vs Grid Utility Rate"
-          subtitle="Comparing peer solar pricing against utility rates ($/kWh)"
-          icon={TrendingUp}
-        >
-          <div className="h-64 sm:h-72 w-full pt-2">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={PRICE_TREND_DATA} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                <XAxis dataKey="cycle" stroke="#94a3b8" fontSize={11} tickLine={false} />
-                <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} unit=" $" />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#0f172a',
-                    borderRadius: '8px',
-                    color: '#f8fafc',
-                    fontSize: '11px',
-                    border: '1px solid #1e293b',
-                  }}
-                />
-                <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />
-                <Line
-                  type="monotone"
-                  dataKey="clearingPrice"
-                  name="SolarMesh Community Price ($/kWh)"
-                  stroke="#059669"
-                  strokeWidth={2.5}
-                  dot={{ r: 3, fill: '#059669' }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="utilityTariff"
-                  name="Standard Utility Tariff ($/kWh)"
-                  stroke="#94a3b8"
-                  strokeWidth={2}
-                  strokeDasharray="4 4"
-                  dot={false}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </Card>
-
-        {/* Chart 2: Hourly Clean Energy Supply vs Local Demand */}
-        <Card
-          title="Daily Solar Generation vs Energy Demand"
-          subtitle="Hourly solar supply profile vs household demand (kWh)"
+          title="Generation vs Consumption"
+          subtitle="Average power per interval (kW) from live telemetry"
           icon={BarChart3}
         >
-          <div className="h-64 sm:h-72 w-full pt-2">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={SUPPLY_DEMAND_DATA} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                <XAxis dataKey="hour" stroke="#94a3b8" fontSize={11} tickLine={false} />
-                <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} unit=" kWh" />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#0f172a',
-                    borderRadius: '8px',
-                    color: '#f8fafc',
-                    fontSize: '11px',
-                    border: '1px solid #1e293b',
-                  }}
-                />
-                <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />
-                <Bar
-                  dataKey="supply"
-                  name="Solar Generation (kWh)"
-                  fill="#059669"
-                  radius={[3, 3, 0, 0]}
-                />
-                <Bar
-                  dataKey="demand"
-                  name="Home Demand (kWh)"
-                  fill="#64748b"
-                  radius={[3, 3, 0, 0]}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+          {timeseries.length === 0 ? (
+            <div className="h-64 flex flex-col items-center justify-center text-slate-400 text-xs space-y-2">
+              <Activity className="w-6 h-6 text-slate-300" />
+              <p>No telemetry data yet — start the simulation to collect analytics.</p>
+            </div>
+          ) : (
+            <div className="h-64 sm:h-72 w-full pt-2">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={timeseries} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                  <XAxis dataKey="time" stroke="#94a3b8" fontSize={11} tickLine={false} />
+                  <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} unit=" kW" />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: '#0f172a',
+                      borderRadius: '8px',
+                      color: '#f8fafc',
+                      fontSize: '11px',
+                      border: '1px solid #1e293b',
+                    }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />
+                  <Bar dataKey="generation" name="Generation (kW)" fill="#059669" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="consumption" name="Consumption (kW)" fill="#64748b" radius={[3, 3, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </Card>
+
+        {/* Chart 2: Grid congestion overview */}
+        <Card
+          title="Grid Edge Utilization"
+          subtitle="Current load vs capacity per corridor"
+          icon={TrendingUp}
+        >
+          {grid?.highest_load_edge ? (
+            <div className="space-y-3 pt-2">
+              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5 text-xs">
+                <div className="flex justify-between font-semibold text-slate-700">
+                  <span>Highest-load corridor:</span>
+                  <span className="font-mono text-slate-900">
+                    {grid.highest_load_edge.from_code} → {grid.highest_load_edge.to_code}
+                  </span>
+                </div>
+                <div className="flex justify-between text-slate-600">
+                  <span>Load:</span>
+                  <span>{formatKwh(grid.highest_load_edge.load_kw, 2)}</span>
+                </div>
+                <div className="flex justify-between text-slate-600">
+                  <span>Utilization:</span>
+                  <span className={grid.highest_load_edge.utilization > 0.8 ? 'text-rose-600 font-bold' : 'text-slate-800'}>
+                    {(grid.highest_load_edge.utilization * 100).toFixed(1)}%
+                  </span>
+                </div>
+                <div className="flex justify-between text-slate-600">
+                  <span>Avg line loss factor:</span>
+                  <span>{(grid.average_loss_factor * 100).toFixed(2)}%</span>
+                </div>
+              </div>
+
+              {grid.congested_edges?.length > 0 ? (
+                <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 space-y-2">
+                  <div className="flex items-center space-x-1.5 text-rose-700 font-bold text-xs">
+                    <AlertTriangle className="w-4 h-4" />
+                    <span>⚠ Grid Congestion ({grid.congested_edges.length} edges)</span>
+                  </div>
+                  {grid.congested_edges.map((e) => (
+                    <div key={e.edge_id} className="flex justify-between text-[11px] text-rose-800">
+                      <span className="font-mono">
+                        {e.from_code} → {e.to_code}
+                      </span>
+                      <span className="font-semibold">
+                        Utilization: {(e.utilization * 100).toFixed(0)}%
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold text-center">
+                  ✓ No congestion — all corridors within capacity
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-2 text-[11px]">
+                <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200">
+                  <span className="text-slate-500 block">Total grid load</span>
+                  <span className="font-bold text-slate-800">{formatKwh(grid.total_load_kw, 2)}</span>
+                </div>
+                <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200">
+                  <span className="text-slate-500 block">Congestion events (24h)</span>
+                  <span className="font-bold text-slate-800">{dash?.congestion_events ?? 0}</span>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="h-64 flex items-center justify-center text-slate-400 text-xs">
+              Loading grid analytics...
+            </div>
+          )}
         </Card>
       </div>
 
-      {/* Demo Sandbox Drawer */}
+      {/* Market summary */}
+      {market && (
+        <Card title="Market Summary" subtitle="All-time market aggregates" icon={DollarSign}>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-1">
+            {[
+              ['Buy Volume', formatKwh(market.buy_volume_kwh, 1)],
+              ['Sell Volume', formatKwh(market.sell_volume_kwh, 1)],
+              ['Matched', formatKwh(market.matched_volume_kwh, 1)],
+              ['Avg Price', `$${market.average_price?.toFixed(3) ?? '—'}`],
+              ['Avg Loss', formatKwh(market.average_loss_kwh, 3)],
+              ['Network Fees', formatCurrency(market.total_network_fees)],
+            ].map(([label, value]) => (
+              <div key={label} className="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
+                <span className="text-[10px] text-slate-400 uppercase font-bold block">{label}</span>
+                <span className="text-sm font-bold text-slate-900">{value}</span>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      {/* Digital-Twin Simulation Controls */}
       <DemoSandboxDrawer onActionComplete={fetchData} />
     </div>
   );

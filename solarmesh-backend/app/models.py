@@ -12,6 +12,7 @@ from sqlalchemy import (
     Float,
     ForeignKey,
     Integer,
+    JSON,
     Numeric,
     String,
     UniqueConstraint,
@@ -61,7 +62,26 @@ class LedgerEntryType(str, enum.Enum):
     WITHDRAWAL = "withdrawal"
     TRADE_PAYMENT = "trade_payment"
     TRADE_RECEIPT = "trade_receipt"
+    NETWORK_FEE = "network_fee"
     ADJUSTMENT = "adjustment"
+
+
+class DeviceStatus(str, enum.Enum):
+    ONLINE = "online"
+    OFFLINE = "offline"
+    MAINTENANCE = "maintenance"
+
+
+class GridEdgeStatus(str, enum.Enum):
+    NORMAL = "normal"
+    CONGESTED = "congested"
+    OFFLINE = "offline"
+
+
+class GridEventType(str, enum.Enum):
+    CONGESTION = "congestion"
+    EDGE_OFFLINE = "edge_offline"
+    EDGE_RECOVERED = "edge_recovered"
 
 
 # ---------------------------------------------------------------- users / wallets
@@ -158,6 +178,7 @@ class Device(Base):
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     device_type: Mapped[str] = mapped_column(String(32), default="solar_panel", nullable=False)
     capacity_kwh: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    status: Mapped[str] = mapped_column(String(16), default="online", nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
 
@@ -172,6 +193,7 @@ class Device(Base):
             "name": self.name,
             "device_type": self.device_type,
             "capacity_kwh": self.capacity_kwh,
+            "status": self.status,
             "is_active": self.is_active,
             "created_at": self.created_at.isoformat(),
         }
@@ -218,6 +240,7 @@ class GridEdge(Base):
     capacity_kw: Mapped[float] = mapped_column(Float, default=10.0, nullable=False)
     load_kw: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
     loss_factor: Mapped[float] = mapped_column(Float, default=0.02, nullable=False)
+    status: Mapped[str] = mapped_column(String(16), default="normal", nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
     from_node: Mapped["GridNode"] = relationship(back_populates="edges_from", foreign_keys=[from_node_id])
@@ -226,6 +249,14 @@ class GridEdge(Base):
     @property
     def utilization(self) -> float:
         return (self.load_kw / self.capacity_kw) if self.capacity_kw > 0 else 0.0
+
+    @property
+    def edge_status(self) -> str:
+        if not self.is_active:
+            return GridEdgeStatus.OFFLINE.value
+        if self.capacity_kw > 0 and (self.load_kw / self.capacity_kw) > 0.8:
+            return GridEdgeStatus.CONGESTED.value
+        return GridEdgeStatus.NORMAL.value
 
     def to_dict(self) -> dict:
         return {
@@ -236,6 +267,7 @@ class GridEdge(Base):
             "load_kw": self.load_kw,
             "loss_factor": self.loss_factor,
             "utilization": self.utilization,
+            "status": self.edge_status,
             "is_active": self.is_active,
         }
 
@@ -290,11 +322,14 @@ class Trade(Base):
     bid_id: Mapped[str] = mapped_column(ForeignKey("orders.id"), index=True, nullable=False)
     seller_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True, nullable=False)
     buyer_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True, nullable=False)
-    quantity_kwh: Mapped[float] = mapped_column(Numeric(10, 4), nullable=False)
-    price_per_kwh: Mapped[float] = mapped_column(Numeric(10, 4), nullable=False)  # gross, before grid cost
+    quantity_kwh: Mapped[float] = mapped_column(Numeric(10, 4), nullable=False)  # energy sent by seller
+    delivered_kwh: Mapped[float] = mapped_column(Numeric(10, 4), default=0.0, nullable=False)  # energy received by buyer
+    energy_loss_kwh: Mapped[float] = mapped_column(Numeric(10, 4), default=0.0, nullable=False)
+    price_per_kwh: Mapped[float] = mapped_column(Numeric(10, 4), nullable=False)  # seller ask, before grid cost
     network_cost_per_kwh: Mapped[float] = mapped_column(Numeric(10, 4), default=0.0, nullable=False)
-    total_amount: Mapped[float] = mapped_column(Numeric(14, 6), nullable=False)
-    path_nodes: Mapped[str | None] = mapped_column(String(1000), nullable=True)  # comma-separated node ids
+    total_amount: Mapped[float] = mapped_column(Numeric(14, 6), nullable=False)  # buyer pays: energy + network
+    path_nodes: Mapped[str | None] = mapped_column(String(1000), nullable=True)  # comma-separated node codes
+    explanation: Mapped[dict | None] = mapped_column(JSON, nullable=True)  # match reason / checks breakdown
     status: Mapped[TradeStatus] = mapped_column(Enum(TradeStatus), default=TradeStatus.SETTLED, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True, nullable=False)
 
@@ -303,39 +338,101 @@ class Trade(Base):
         return self.path_nodes.split(",") if self.path_nodes else []
 
     def to_dict(self) -> dict:
+        qty = float(self.quantity_kwh)
+        delivered = float(self.delivered_kwh)
         return {
             "id": self.id,
             "offer_id": self.offer_id,
             "bid_id": self.bid_id,
             "seller_id": self.seller_id,
             "buyer_id": self.buyer_id,
-            "quantity_kwh": float(self.quantity_kwh),
+            "quantity_kwh": qty,
+            "delivered_kwh": delivered,
+            "energy_loss_kwh": float(self.energy_loss_kwh),
+            "loss_percentage": round((1.0 - delivered / qty) * 100, 2) if qty > 0 else 0.0,
             "price_per_kwh": float(self.price_per_kwh),
             "network_cost_per_kwh": float(self.network_cost_per_kwh),
             "total_amount": float(self.total_amount),
             "path_nodes": self.path_nodes.split(",") if self.path_nodes else [],
+            "explanation": self.explanation,
             "status": self.status.value,
             "created_at": self.created_at.isoformat(),
         }
 
 
 class Telemetry(Base):
-    """Periodic energy readings reported by devices."""
+    """Periodic energy readings reported by devices (simulator or real IoT)."""
     __tablename__ = "telemetry"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
     device_id: Mapped[str] = mapped_column(ForeignKey("devices.id", ondelete="CASCADE"), index=True, nullable=False)
-    production_kwh: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
-    consumption_kwh: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
-    battery_kwh: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    node_id: Mapped[str | None] = mapped_column(ForeignKey("grid_nodes.id"), nullable=True)
+    production_kw: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)  # instantaneous solar
+    consumption_kw: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)  # instantaneous load
+    battery_soc: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)  # 0..100 %
+    battery_kw: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)  # stored energy at reading
+    voltage: Mapped[float] = mapped_column(Float, default=230.0, nullable=False)
+    current: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    power_kw: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)  # net grid exchange (+ export)
     recorded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True, nullable=False)
 
     def to_dict(self) -> dict:
         return {
             "id": self.id,
             "device_id": self.device_id,
-            "production_kwh": self.production_kwh,
-            "consumption_kwh": self.consumption_kwh,
-            "battery_kwh": self.battery_kwh,
+            "node_id": self.node_id,
+            "production_kw": self.production_kw,
+            "consumption_kw": self.consumption_kw,
+            "battery_soc": self.battery_soc,
+            "battery_kw": self.battery_kw,
+            "voltage": self.voltage,
+            "current": self.current,
+            "power_kw": self.power_kw,
             "recorded_at": self.recorded_at.isoformat(),
+        }
+
+
+class SimulationState(Base):
+    """Singleton row tracking the global simulation loop state."""
+    __tablename__ = "simulation_state"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, default=1)
+    is_running: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    interval_seconds: Mapped[float] = mapped_column(Float, default=4.0, nullable=False)
+    tick_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    last_tick_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    started_by: Mapped[str | None] = mapped_column(String(36), nullable=True)
+
+    def to_dict(self) -> dict:
+        return {
+            "is_running": self.is_running,
+            "interval_seconds": self.interval_seconds,
+            "tick_count": self.tick_count,
+            "last_tick_at": self.last_tick_at.isoformat() if self.last_tick_at else None,
+            "started_at": self.started_at.isoformat() if self.started_at else None,
+        }
+
+
+class GridEvent(Base):
+    """Congestion / outage events on grid edges for monitoring and demo badges."""
+    __tablename__ = "grid_events"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    edge_id: Mapped[str] = mapped_column(ForeignKey("grid_edges.id", ondelete="CASCADE"), index=True, nullable=False)
+    event_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    utilization: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    detail: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True, nullable=False)
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "edge_id": self.edge_id,
+            "event_type": self.event_type,
+            "utilization": self.utilization,
+            "detail": self.detail,
+            "resolved_at": self.resolved_at.isoformat() if self.resolved_at else None,
+            "created_at": self.created_at.isoformat(),
         }

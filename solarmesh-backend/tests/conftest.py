@@ -3,15 +3,16 @@ from __future__ import annotations
 
 import os
 
+# Force SQLite for tests so local test runs never require a Postgres server.
+# (Production Postgres config in .env is untouched; tests only set defaults if absent.)
+os.environ.setdefault("DATABASE_URL", "sqlite:///./solarmesh_test.db")
 os.environ.setdefault("SECRET_KEY", "test-secret")
-os.environ.setdefault("POSTGRES_DB", "solarmesh_test")
 
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import text
 from sqlalchemy.orm import sessionmaker
 
-from app.config import settings
 from app.db import Base, engine, get_db
 from app.main import app
 from app.models import GridEdge, GridNode, User, UserRole
@@ -22,27 +23,17 @@ TestSession = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 
 @pytest.fixture(scope="session", autouse=True)
 def _create_tables():
-    # If a PostgreSQL database is configured, ensure the test database exists
-    if "postgresql" in settings.database_url and settings.POSTGRES_HOST:
-        admin_url = (
-            f"postgresql+psycopg://{settings.POSTGRES_USER}:{settings.POSTGRES_PASSWORD}"
-            f"@{settings.POSTGRES_HOST}:{settings.POSTGRES_PORT}/postgres"
-        )
-        try:
-            from sqlalchemy import create_engine
-            admin_engine = create_engine(admin_url, isolation_level="AUTOCOMMIT")
-            with admin_engine.connect() as conn:
-                exists = conn.execute(
-                    text("SELECT 1 FROM pg_database WHERE datname = :d"), {"d": settings.POSTGRES_DB}
-                ).scalar()
-                if not exists:
-                    conn.execute(text(f'CREATE DATABASE "{settings.POSTGRES_DB}"'))
-            admin_engine.dispose()
-        except Exception:
-            pass
-
     Base.metadata.create_all(bind=engine)
     yield
+    # Clean up the SQLite test database file after the session.
+    try:
+        if engine.url.get_backend_name() == "sqlite":
+            engine.dispose()
+            db_path = engine.url.database
+            if db_path and "solarmesh_test" in db_path and os.path.exists(db_path):
+                os.remove(db_path)
+    except Exception:
+        pass
 
 
 @pytest.fixture()

@@ -1,6 +1,8 @@
 """Market: order placement, order book, and matching engine tests."""
 from __future__ import annotations
 
+import pytest
+
 from app.models import LedgerEntryType, OrderSide
 from app.schemas import OrderCreate
 from app.services import market_service
@@ -45,21 +47,26 @@ def test_matching_full_flow(db_session, grid_nodes):
 
     result = market_service.run_matching(db_session)
     assert result["matched_trades"] == 1
-    assert result["total_volume_kwh"] == 5.0
 
     trade = result["trades"][0]
+    # Buyer receives the net amount they bid for; seller sends gross to cover losses.
+    assert trade.delivered_kwh == 5.0
+    assert trade.quantity_kwh > 5.0  # gross sent exceeds delivered
+    assert trade.energy_loss_kwh == pytest.approx(trade.quantity_kwh - trade.delivered_kwh, abs=0.001)
     assert trade.price_per_kwh == 0.10
     assert trade.total_amount > 5 * 0.10  # includes network cost
     assert len(trade.path_nodes) == 3  # n1 -> n2 -> n3
+    assert trade.explanation is not None
+    assert trade.explanation["price_check"] is True
 
-    # Seller credited gross, buyer paid gross + network
+    # Buyer's wallet was escrowed for bid price * gross needed; reserve fully released.
     seller_wallet = get_or_create_wallet(db_session, seller.id)
     buyer_wallet = get_or_create_wallet(db_session, buyer.id)
     assert float(seller_wallet.balance) > 1000.0
     assert float(buyer_wallet.balance) < 1000.0
-    assert float(buyer_wallet.reserved) == 0.0  # fully settled
+    assert float(buyer_wallet.reserved) == 0.0
     assert bid.status.value == "filled"
-    assert offer.status.value == "partially_filled"  # 10 kWh offer, 5 consumed
+    assert offer.status.value == "partially_filled"  # 10 kWh offer, partial consumption
 
 
 def test_partial_fill(db_session, grid_nodes):

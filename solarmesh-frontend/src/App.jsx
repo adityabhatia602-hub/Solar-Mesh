@@ -13,6 +13,7 @@ import Marketplace from './pages/Marketplace';
 import Trades from './pages/Trades';
 import TradeDetails from './pages/TradeDetails';
 import Network from './pages/Network';
+import Telemetry from './pages/Telemetry';
 import Analytics from './pages/Analytics';
 import Blockchain from './pages/Blockchain';
 import Profile from './pages/Profile';
@@ -91,6 +92,7 @@ export function App() {
               >
                 <Route index element={<Dashboard />} />
                 <Route path="marketplace" element={<Marketplace />} />
+                <Route path="telemetry" element={<Telemetry />} />
                 <Route path="trades" element={<Trades />} />
                 <Route path="trades/:id" element={<TradeDetails />} />
                 <Route path="network" element={<Network />} />

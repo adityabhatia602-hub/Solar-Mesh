@@ -9,8 +9,8 @@ import {
   Blocks,
   Cpu,
   X,
-  Zap,
   Activity,
+  Radio,
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -26,6 +26,12 @@ const NAV_ITEMS = [
     path: '/marketplace',
     icon: ArrowLeftRight,
     description: 'Buy & sell excess solar power locally',
+  },
+  {
+    name: 'Device Telemetry',
+    path: '/telemetry',
+    icon: Radio,
+    description: 'Live simulated meter readings',
   },
   {
     name: 'Trade Receipts',
@@ -130,33 +136,32 @@ export const Sidebar = ({ isOpen, onClose }) => {
           })}
         </div>
 
-        {/* Grid Health Status Footer */}
+        {/* Data Source Footer */}
         <div className="p-4 border-t border-slate-100 bg-slate-50/50">
           <div className="p-3 bg-white rounded-xl border border-slate-200/80 shadow-2xs space-y-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-1.5 text-xs font-bold text-slate-800">
                 <Activity className="w-3.5 h-3.5 text-slate-600" />
-                <span>Grid Status</span>
+                <span>Data Source</span>
               </div>
-              <span className="text-[10px] font-bold px-1.5 py-0.5 bg-emerald-50 text-emerald-800 border border-emerald-200/60 rounded">
-                Online & Healthy
+              <span className="text-[10px] font-bold px-1.5 py-0.5 bg-sky-50 text-sky-800 border border-sky-200/60 rounded">
+                Simulated Digital Twin
               </span>
             </div>
 
             <div className="space-y-1 text-[11px] text-slate-500">
               <div className="flex justify-between">
-                <span>Avg Transmission Loss:</span>
-                <span className="font-semibold text-slate-700">~2.1%</span>
+                <span>Telemetry:</span>
+                <span className="font-semibold text-slate-700">Simulated IoT</span>
               </div>
               <div className="flex justify-between">
-                <span>Routing:</span>
-                <span className="font-semibold text-slate-700">Smart Local Path</span>
+                <span>Market &amp; settlement:</span>
+                <span className="font-semibold text-slate-700">Real engine</span>
               </div>
             </div>
 
-            <div className="pt-1 border-t border-slate-100 text-[10px] text-slate-400 flex items-center justify-between">
-              <span>Substation Headroom:</span>
-              <span className="text-emerald-700 font-semibold">Normal (76%)</span>
+            <div className="pt-1 border-t border-slate-100 text-[10px] text-slate-400">
+              IoT/utility integration-ready via TelemetryProvider &amp; GridProvider interfaces.
             </div>
           </div>
         </div>

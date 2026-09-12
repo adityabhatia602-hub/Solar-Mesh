@@ -19,6 +19,17 @@ export const marketApi = {
     return response.data; // list of OrderOut
   },
 
+  getOpenOrders: async ({ side = null, nodeId = null, limit = 100 } = {}) => {
+    const response = await apiClient.get('/api/market/orders/open', {
+      params: {
+        ...(side ? { side } : {}),
+        ...(nodeId ? { node_id: nodeId } : {}),
+        limit,
+      },
+    });
+    return response.data; // list of OrderOut (all users, open only)
+  },
+
   getOrderBook: async (nodeId = null) => {
     const response = await apiClient.get('/api/market/orderbook', {
       params: nodeId ? { node_id: nodeId } : {},
@@ -36,6 +47,11 @@ export const marketApi = {
       params: { limit },
     });
     return response.data; // list of TradeOut
+  },
+
+  getTrade: async (tradeId) => {
+    const response = await apiClient.get(`/api/trades/${tradeId}`);
+    return response.data; // TradeOut with explanation
   },
 
   triggerMatching: async () => {

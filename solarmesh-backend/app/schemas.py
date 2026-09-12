@@ -4,7 +4,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, model_validator
 
 from app.models import OrderSide, OrderStatus, TradeStatus
 
@@ -70,6 +70,21 @@ class LedgerEntryOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+# ---------------------------------------------------------------- simulation
+
+class SimulationStatusOut(BaseModel):
+    is_running: bool
+    interval_seconds: float
+    tick_count: int
+    last_tick_at: datetime | None = None
+    started_at: datetime | None = None
+    loop_alive: bool = False
+
+
+class TickRequest(BaseModel):
+    ticks: int = Field(default=1, ge=1, le=20)
+
+
 class DepositRequest(BaseModel):
     amount: float = Field(gt=0, le=100000)
 
@@ -90,6 +105,7 @@ class DeviceOut(BaseModel):
     name: str
     device_type: str
     capacity_kwh: float
+    status: str = "online"
     is_active: bool
 
     model_config = {"from_attributes": True}
@@ -114,6 +130,7 @@ class GridEdgeOut(BaseModel):
     load_kw: float
     loss_factor: float
     utilization: float
+    status: str = "normal"
     is_active: bool
 
     model_config = {"from_attributes": True}
@@ -127,6 +144,10 @@ class RouteQuote(BaseModel):
     path_loss: float = 0.0
     congestion_penalty: float = 0.0
     total_network_cost_per_kwh: float = 0.0
+    min_available_capacity_kw: float = 0.0
+    required_kw: float = 0.0
+    loss_factor: float = 0.0
+    rejected_reason: str | None = None
 
 
 # ---------------------------------------------------------------- market
@@ -136,6 +157,7 @@ class OrderCreate(BaseModel):
     price_per_kwh: float = Field(gt=0, le=1000)
     quantity_kwh: float = Field(gt=0, le=10000)
     node_id: str
+    device_id: str | None = None
     expires_in_hours: int = Field(default=48, ge=1, le=168)
 
 
@@ -174,20 +196,34 @@ class TradeOut(BaseModel):
     seller_id: str
     buyer_id: str
     quantity_kwh: float
+    delivered_kwh: float = 0.0
+    energy_loss_kwh: float = 0.0
+    loss_percentage: float = 0.0
     price_per_kwh: float
     network_cost_per_kwh: float
     total_amount: float
-    path_nodes: list[str] = Field(alias="path_node_list")
+    path_nodes: list[str] = []
+    explanation: dict | None = None
     status: str
     created_at: datetime
 
-    model_config = {"from_attributes": True, "populate_by_name": True}
+    model_config = {"from_attributes": True}
+
+    @model_validator(mode="before")
+    @classmethod
+    def _coerce_from_model(cls, data):
+        """Accept the ORM Trade by converting via its to_dict(), which exposes
+        path_nodes as a list (the raw column is a comma-joined string)."""
+        if not isinstance(data, dict) and hasattr(data, "to_dict"):
+            return data.to_dict()
+        return data
 
 
 class MatchResult(BaseModel):
     matched_trades: int
     total_volume_kwh: float
     total_value: float
+    total_loss_kwh: float = 0.0
     trades: list[TradeOut]
 
 
@@ -195,17 +231,30 @@ class MatchResult(BaseModel):
 
 class TelemetryIn(BaseModel):
     device_id: str
-    production_kwh: float = Field(ge=0)
-    consumption_kwh: float = Field(ge=0)
-    battery_kwh: float = Field(ge=0)
+    production_kw: float = Field(ge=0, default=0)
+    consumption_kw: float = Field(ge=0, default=0)
+    battery_soc: float = Field(ge=0, le=100, default=50)
+    battery_kw: float = Field(default=0)
+    voltage: float = Field(default=230.0)
+    current: float = Field(default=0.0)
+    power_kw: float = Field(default=0.0)
+    # Legacy field names (pre-simulator clients); mapped onto new fields.
+    production_kwh: float | None = Field(ge=0, default=None)
+    consumption_kwh: float | None = Field(ge=0, default=None)
+    battery_kwh: float | None = Field(default=None)
 
 
 class TelemetryOut(BaseModel):
     id: str
     device_id: str
-    production_kwh: float
-    consumption_kwh: float
-    battery_kwh: float
+    node_id: str | None = None
+    production_kw: float
+    consumption_kw: float
+    battery_soc: float
+    battery_kw: float
+    voltage: float
+    current: float
+    power_kw: float
     recorded_at: datetime
 
     model_config = {"from_attributes": True}

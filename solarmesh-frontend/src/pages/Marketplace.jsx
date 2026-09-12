@@ -20,6 +20,7 @@ import Card from '../components/common/Card';
 import OrderBook from '../components/marketplace/OrderBook';
 import PlaceOrderModal from '../components/marketplace/PlaceOrderModal';
 import OrdersTable from '../components/marketplace/OrdersTable';
+import OpenOrdersTable from '../components/marketplace/OpenOrdersTable';
 import DemoSandboxDrawer from '../components/common/DemoSandboxDrawer';
 
 export const Marketplace = () => {
@@ -29,8 +30,11 @@ export const Marketplace = () => {
 
   const [orderBook, setOrderBook] = useState(null);
   const [orders, setOrders] = useState([]);
+  const [openOrders, setOpenOrders] = useState([]);
+  const [sideFilter, setSideFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [nodes, setNodes] = useState([]);
+  const [nodeCodeMap, setNodeCodeMap] = useState({});
   const [selectedNodeId, setSelectedNodeId] = useState('');
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
   const [modalSide, setModalSide] = useState(isProsumer ? 'offer' : 'bid');
@@ -41,21 +45,31 @@ export const Marketplace = () => {
   const loadMarketData = useCallback(async () => {
     try {
       setLoading(true);
-      const [obData, ordersData, nodesData] = await Promise.all([
+      const [obData, ordersData, openOrdersData, nodesData] = await Promise.all([
         marketApi.getOrderBook(selectedNodeId || null).catch(() => null),
         marketApi.getMyOrders(statusFilter || null).catch(() => []),
+        marketApi
+          .getOpenOrders({ side: sideFilter || null, nodeId: selectedNodeId || null })
+          .catch(() => []),
         gridApi.getNodes().catch(() => []),
       ]);
 
       if (obData) setOrderBook(obData);
       setOrders(ordersData);
+      setOpenOrders(openOrdersData);
       setNodes(nodesData);
+      // Map node id -> code for readable rows.
+      const codeMap = {};
+      (nodesData || []).forEach((n) => {
+        codeMap[n.id] = n.code;
+      });
+      setNodeCodeMap(codeMap);
     } catch (err) {
       console.warn('Error loading market data:', err);
     } finally {
       setLoading(false);
     }
-  }, [selectedNodeId, statusFilter]);
+  }, [selectedNodeId, statusFilter, sideFilter]);
 
   useEffect(() => {
     loadMarketData();
@@ -136,6 +150,15 @@ export const Marketplace = () => {
       <OrderBook
         orderBook={orderBook}
         onSelectPrice={handleSelectPriceFromBook}
+      />
+
+      {/* All Open Orders (market-wide) */}
+      <OpenOrdersTable
+        orders={openOrders}
+        nodeCodeMap={nodeCodeMap}
+        currentUserId={user?.id}
+        sideFilter={sideFilter}
+        onSideFilterChange={setSideFilter}
       />
 
       {/* User's Orders Section */}

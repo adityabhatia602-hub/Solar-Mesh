@@ -36,6 +36,27 @@ def list_my_orders(
     return q.order_by(Order.created_at.desc()).limit(200).all()
 
 
+@router.get("/orders/open", response_model=list[OrderOut])
+def list_open_orders(
+    side: str | None = None,
+    node_id: str | None = None,
+    limit: int = Query(default=100, ge=1, le=500),
+    db: Session = Depends(get_db),
+):
+    """All currently-open orders (public marketplace view)."""
+    q = db.query(Order).filter(Order.status.in_([OrderStatus.OPEN, OrderStatus.PARTIALLY_FILLED]))
+    if side:
+        try:
+            from app.models import OrderSide
+
+            q = q.filter(Order.side == OrderSide(side))
+        except ValueError:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Unknown side: {side}")
+    if node_id:
+        q = q.filter(Order.node_id == node_id)
+    return q.order_by(Order.created_at.desc()).limit(limit).all()
+
+
 @router.get("/orderbook", response_model=OrderBookOut)
 def get_order_book(node_id: str | None = None, db: Session = Depends(get_db)):
     return market_service.get_order_book(db, node_id)
@@ -47,6 +68,7 @@ def list_trades(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    """Trades the current user participates in (kept for API compatibility)."""
     return (
         db.query(Trade)
         .filter((Trade.seller_id == user.id) | (Trade.buyer_id == user.id))

@@ -28,6 +28,9 @@ class Settings(BaseSettings):
     ENERGY_PRICE_FLOOR: float = 0.05
     ENERGY_PRICE_CEIL: float = 0.50
 
+    # Digital-twin simulation
+    SIMULATION_INTERVAL_SECONDS: float = 4.0
+
     # Grid
     GRID_LOSS_FACTOR: float = 0.02
     CONGESTION_PENALTY: float = 0.15
@@ -41,7 +44,9 @@ class Settings(BaseSettings):
             elif url.startswith("postgresql://") and "+psycopg" not in url:
                 url = url.replace("postgresql://", "postgresql+psycopg://", 1)
             return url
-        if self.POSTGRES_HOST:
+        # POSTGRES_HOST values that clearly mean "not configured" fall back to
+        # the zero-setup SQLite default so local dev never requires a DB server.
+        if self.POSTGRES_HOST and self.POSTGRES_HOST not in ("localhost", "127.0.0.1", ""):
             return (
                 f"postgresql+psycopg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}"
                 f"@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"

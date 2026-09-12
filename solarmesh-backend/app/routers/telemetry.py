@@ -1,11 +1,11 @@
-"""Telemetry ingestion and live WebSocket event stream."""
+"""Telemetry ingestion, history, and the live WebSocket event stream."""
 from __future__ import annotations
 
 import asyncio
 import json
 from collections import defaultdict
 
-from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect, status
+from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect, status
 from sqlalchemy.orm import Session
 
 from app.db import get_db
@@ -62,42 +62,93 @@ event_bus = EventBus()
 
 @router.post("/api/telemetry", response_model=TelemetryOut, status_code=status.HTTP_201_CREATED)
 def ingest_telemetry(payload: TelemetryIn, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Ingest a device reading (from the simulator or a real IoT device)."""
+    from app.services.telemetry_service import save_reading
+
     device = db.get(Device, payload.device_id)
     if device is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Device not found")
-    if device.owner_id != user.id:
+    if device.owner_id != user.id and user.role.value != "admin":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your device")
 
-    reading = Telemetry(
-        device_id=device.id,
-        production_kwh=payload.production_kwh,
-        consumption_kwh=payload.consumption_kwh,
-        battery_kwh=payload.battery_kwh,
+    # Legacy field names map onto the new instantaneous fields.
+    production_kw = payload.production_kw if payload.production_kw is not None else (payload.production_kwh or 0.0)
+    consumption_kw = payload.consumption_kw if payload.consumption_kw is not None else (payload.consumption_kwh or 0.0)
+    battery_soc = payload.battery_soc
+    battery_kw = payload.battery_kw if payload.battery_kw is not None else (
+        (payload.battery_kwh or 0.0)
     )
-    db.add(reading)
+
+    net = production_kw - consumption_kw
+    power_kw = payload.power_kw if payload.power_kw else net
+
+    reading = save_reading(
+        db, device,
+        production_kw=production_kw,
+        consumption_kw=consumption_kw,
+        battery_soc=battery_soc,
+        battery_kw=battery_kw,
+        voltage=payload.voltage,
+        current=payload.current,
+        power_kw=power_kw,
+    )
+
+    # Surplus/deficit auto-order detection also applies to manual ingestions.
+    from app.services import market_service
+
+    surplus = reading.power_kw
+    if surplus > market_service.SURPLUS_THRESHOLD_KW:
+        market_service.upsert_auto_order(
+            db, device.owner_id, device.node_id, "offer",
+            quantity_kwh=surplus, price_per_kwh=0.12, device_id=device.id,
+        )
+    elif -surplus > market_service.SURPLUS_THRESHOLD_KW:
+        market_service.upsert_auto_order(
+            db, device.owner_id, device.node_id, "bid",
+            quantity_kwh=-surplus, price_per_kwh=0.30, device_id=device.id,
+        )
+    db.commit()
+
     update_node_congestion(db)
     db.commit()
-    db.refresh(reading)
-
-    reading_dict = reading.to_dict()
-    event_bus.publish_threadsafe("telemetry", {"type": "telemetry", "data": reading_dict})
-    event_bus.publish_threadsafe(f"node:{device.node_id}", {"type": "telemetry", "data": reading_dict})
-    event_bus.publish_threadsafe("grid", {"type": "grid_update", "node_id": device.node_id})
-
     return reading
+
+
+@router.get("/api/telemetry/latest", response_model=list[TelemetryOut])
+def latest_telemetry(
+    device_id: str | None = None,
+    limit: int = Query(default=50, ge=1, le=500),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Latest reading per device (optionally filtered to one device)."""
+    q = db.query(Telemetry)
+    if device_id:
+        q = q.filter(Telemetry.device_id == device_id)
+    rows = q.order_by(Telemetry.recorded_at.desc()).limit(limit * 4).all()
+    seen: set[str] = set()
+    latest: list[Telemetry] = []
+    for row in rows:
+        if row.device_id in seen:
+            continue
+        seen.add(row.device_id)
+        latest.append(row)
+        if len(latest) >= limit:
+            break
+    return latest
 
 
 @router.get("/api/telemetry/device/{device_id}", response_model=list[TelemetryOut])
 def device_history(
     device_id: str,
-    limit: int = 100,
+    limit: int = Query(default=100, ge=1, le=500),
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     device = db.get(Device, device_id)
     if device is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Device not found")
-    if device.owner_id != user.id:
+    if device.owner_id != user.id and user.role.value != "admin":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your device")
     return (
         db.query(Telemetry)
@@ -112,7 +163,8 @@ def device_history(
 async def live_feed(ws: WebSocket, token: str | None = None):
     """Live event stream: {'subscribe': '<channel>'} to join; events pushed as JSON.
 
-    Channels: 'trades', 'orders', 'telemetry', 'grid', or a node id for localized updates.
+    Channels: 'trades', 'orders', 'telemetry', 'grid', 'simulation', or a node/user id
+    for localized updates.
     """
     user_id = None
     if token:
@@ -126,7 +178,6 @@ async def live_feed(ws: WebSocket, token: str | None = None):
     channels: set[str] = set()
     try:
         while True:
-            # Wait for subscribe/unsubscribe commands; publish happens via bus
             raw = await ws.receive_text()
             try:
                 msg = json.loads(raw)
@@ -150,4 +201,3 @@ async def live_feed(ws: WebSocket, token: str | None = None):
     finally:
         for ch in channels:
             await event_bus.unsubscribe(ch, ws)
-

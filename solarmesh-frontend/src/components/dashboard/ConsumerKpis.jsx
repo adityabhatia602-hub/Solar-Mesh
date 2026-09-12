@@ -1,66 +1,69 @@
 import React from 'react';
-import { Zap, DollarSign, PiggyBank, ShieldCheck, Sun } from 'lucide-react';
+import { Zap, DollarSign, PiggyBank, Home } from 'lucide-react';
 import StatCard from '../common/StatCard';
 import { formatCurrency, formatKwh } from '../../utils/formatters';
 import { UTILITY_GRID_TARIFF } from '../../utils/constants';
 
+/** Consumer KPI cards fed by live telemetry + wallet data. */
 export const ConsumerKpis = ({
   wallet,
-  consumptionKwh = 0,
+  consumptionKw = 0,
+  deficitKw = 0,
   trades = [],
 }) => {
   const energyBought = wallet?.energy_kwh_bought ?? 0;
+  const balance = wallet?.balance ?? 0;
 
-  // Calculate savings vs traditional utility grid tariff
-  const avgP2pPrice = trades.length > 0
-    ? trades.reduce((acc, t) => acc + (t.price_per_kwh || 0.16), 0) / trades.length
-    : 0.16;
+  // Average price paid across this user's settled trades.
+  const avgPrice = trades.length > 0
+    ? trades.reduce((acc, t) => acc + (t.price_per_kwh || 0), 0) / trades.length
+    : 0;
 
   const totalSpent = trades.reduce((acc, t) => acc + (t.total_amount || 0), 0);
   const costIfUtility = energyBought * UTILITY_GRID_TARIFF;
-  const savings = Math.max(0, costIfUtility - totalSpent);
+  const savings = energyBought > 0 ? Math.max(0, costIfUtility - totalSpent) : 0;
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
       <StatCard
-        title="Local Solar Energy Procured"
+        title="Home Consumption"
+        value={formatKwh(consumptionKw, 2)}
+        subtitle="Live household load (kW)"
+        icon={Home}
+        accent="amber"
+        trend={deficitKw > 0 ? `Deficit ${formatKwh(deficitKw, 2)}` : 'Self-balanced'}
+        trendDirection={deficitKw > 0 ? 'down' : 'up'}
+      />
+
+      <StatCard
+        title="Clean Energy Bought"
         value={formatKwh(energyBought, 1)}
-        subtitle="100% peer-to-peer verified"
+        subtitle="Lifetime peer-to-peer purchases"
         icon={Zap}
         accent="emerald"
-        trend="Zero fossil fuel mix"
-        trendDirection="up"
+        trend={energyBought > 0 ? 'P2P supplied' : 'No purchases yet'}
+        trendDirection={energyBought > 0 ? 'up' : 'flat'}
       />
 
       <StatCard
-        title="Utility Tariff Savings"
-        value={formatCurrency(savings > 0 ? savings : energyBought * 0.11)}
-        subtitle={`vs standard ${formatCurrency(UTILITY_GRID_TARIFF)}/kWh tariff`}
-        icon={PiggyBank}
-        accent="blue"
-        trend="32% Cost Reduction"
-        trendDirection="up"
-      />
-
-      <StatCard
-        title="Average Price Paid"
-        value={formatCurrency(avgP2pPrice, '$', 3)}
-        unit="/kWh"
-        subtitle="Inclusive of network delivery"
+        title="Wallet Balance"
+        value={formatCurrency(balance)}
+        subtitle="Available for bids"
         icon={DollarSign}
-        accent="amber"
-        trend="Dynamic clearing"
-        trendDirection="up"
+        accent="blue"
+        trend={totalSpent > 0 ? `${formatCurrency(totalSpent)} spent trading` : 'No trades yet'}
+        trendDirection="flat"
       />
 
       <StatCard
-        title="Active Renewable Ratio"
-        value="94.2%"
-        subtitle="Grid congestion: Low"
-        icon={Sun}
+        title="Avg Price Paid"
+        value={avgPrice > 0 ? formatCurrency(avgPrice, '$', 3) : '—'}
+        unit={avgPrice > 0 ? '/kWh' : ''}
+        subtitle={savings > 0 ? `Saved ${formatCurrency(savings)} vs utility` : `Utility ref: ${formatCurrency(UTILITY_GRID_TARIFF)}/kWh`}
+        icon={PiggyBank}
         accent="emerald"
-        trend="Near-Zero Transmission Loss"
-        trendDirection="up"
+        trend={savings > 0 ? 'Saving vs grid tariff' : 'Market price'}
+        trendDirection={savings > 0 ? 'up' : 'flat'}
       />
     </div>
   );
