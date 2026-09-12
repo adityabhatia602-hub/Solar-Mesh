@@ -101,7 +101,7 @@ export const DemoSandboxDrawer = ({ onActionComplete }) => {
       {/* Floating Pill Toggle Button */}
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-5 right-5 z-40 inline-flex items-center space-x-2 px-3.5 py-2.5 rounded-full bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold shadow-lg hover:shadow-xl border border-slate-700 transition-all cursor-pointer group"
+        className="fixed bottom-18 sm:bottom-5 right-4 sm:right-5 z-30 inline-flex items-center space-x-1.5 sm:space-x-2 px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-full bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold shadow-lg hover:shadow-xl border border-slate-700 transition-all cursor-pointer group"
         title="Open digital-twin simulation controls"
       >
         <Sliders className="w-4 h-4 text-emerald-400 group-hover:rotate-45 transition-transform" />

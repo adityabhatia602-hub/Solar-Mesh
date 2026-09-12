@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import Navbar from './Navbar';
 import Sidebar from './Sidebar';
+import BottomNav from './BottomNav';
 import { walletApi } from '../../api/wallet';
 import { useMarket } from '../../hooks/useMarket';
 import { formatCurrency, formatKwh } from '../../utils/formatters';
@@ -85,11 +86,14 @@ export const AppLayout = () => {
             onWalletRefresh={fetchWallet}
           />
 
-          <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
+          <main className="flex-1 p-3.5 sm:p-6 lg:p-8 pb-24 lg:pb-8 max-w-7xl w-full mx-auto">
             <Outlet />
           </main>
         </div>
       </div>
+
+      {/* Mobile Bottom Thumb Navigation */}
+      <BottomNav />
     </div>
   );
 };

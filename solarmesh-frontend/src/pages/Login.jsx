@@ -62,7 +62,7 @@ export const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-8 px-4 sm:py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
         {/* Logo */}
         <div className="mx-auto w-12 h-12 rounded-2xl bg-slate-900 flex items-center justify-center text-white shadow-2xs mb-3">
@@ -76,10 +76,10 @@ export const Login = () => {
         </p>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md px-4 sm:px-0">
-        <div className="bg-white py-8 px-6 sm:px-10 shadow-2xs border border-slate-200/80 rounded-2xl">
+      <div className="mt-6 sm:mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="bg-white py-6 px-4 sm:py-8 sm:px-10 shadow-2xs border border-slate-200/80 rounded-2xl">
           {error && (
-            <div className="mb-5 p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-xs font-semibold text-rose-800">
+            <div className="mb-5 p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-xs font-semibold text-rose-800 break-words">
               {error}
             </div>
           )}
