@@ -71,6 +71,14 @@ _INDEX_MIGRATIONS: list[str] = [
 
 def run_lightweight_migrations() -> None:
     """Create tables, ensure missing columns, and apply performance indexes."""
+    # Fast path: if schema is already initialized, skip redundant inspection and table locking
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1 FROM users LIMIT 1"))
+            return
+    except Exception:
+        pass
+
     Base.metadata.create_all(bind=engine)
 
     inspector = inspect(engine)

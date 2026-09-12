@@ -7,10 +7,14 @@ from sqlalchemy.orm import Session
 from app.db import get_db
 from app.dependencies import get_current_user, require_admin
 from app.models import LedgerEntry, LedgerEntryType, User
+from app.rate_limiter import RateLimiter
 from app.schemas import DepositRequest, LedgerEntryOut, TransferRequest, WalletOut
 from app.services.wallet_service import apply_ledger_entry, get_or_create_wallet
 
 router = APIRouter(prefix="/api/wallet", tags=["wallet"])
+
+transfer_limiter = RateLimiter(requests_limit=15, time_window_seconds=60, scope="wallet_transfer")
+deposit_self_limiter = RateLimiter(requests_limit=10, time_window_seconds=60, scope="wallet_deposit_self")
 
 
 @router.get("", response_model=WalletOut)
@@ -26,6 +30,7 @@ def transfer_funds(
     payload: TransferRequest,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
+    _rate: None = Depends(transfer_limiter),
 ):
     """Transfer funds directly from current user's wallet to another peer by email."""
     target_email = payload.recipient_email.lower().strip()
@@ -123,6 +128,7 @@ def deposit_self(
     payload: DepositRequest,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
+    _rate: None = Depends(deposit_self_limiter),
 ):
     """Hackathon faucet: any user can credit their own wallet for testing."""
     return _apply_adjustment(payload, user, db)

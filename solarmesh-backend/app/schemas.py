@@ -97,7 +97,7 @@ class DepositRequest(BaseModel):
 
 
 class TransferRequest(BaseModel):
-    recipient_email: str = Field(min_length=3, max_length=255)
+    recipient_email: EmailStr
     amount: float = Field(gt=0, le=100000)
     memo: str | None = Field(default=None, max_length=255)
 
@@ -105,10 +105,10 @@ class TransferRequest(BaseModel):
 # ---------------------------------------------------------------- devices / grid
 
 class DeviceCreate(BaseModel):
-    name: str = Field(min_length=1, max_length=255)
+    name: str = Field(min_length=1, max_length=100)
     node_id: str
     device_type: Literal["solar_panel", "battery", "meter"] = "solar_panel"
-    capacity_kwh: float = Field(ge=0, le=10000)
+    capacity_kwh: float = Field(gt=0, le=10000)
 
 
 class DeviceOut(BaseModel):
@@ -244,17 +244,17 @@ class MatchResult(BaseModel):
 
 class TelemetryIn(BaseModel):
     device_id: str
-    production_kw: float = Field(ge=0, default=0)
-    consumption_kw: float = Field(ge=0, default=0)
-    battery_soc: float = Field(ge=0, le=100, default=50)
-    battery_kw: float = Field(default=0)
-    voltage: float = Field(default=230.0)
-    current: float = Field(default=0.0)
-    power_kw: float = Field(default=0.0)
+    production_kw: float = Field(ge=0, le=1000.0, default=0.0)
+    consumption_kw: float = Field(ge=0, le=1000.0, default=0.0)
+    battery_soc: float = Field(ge=0, le=100.0, default=50.0)
+    battery_kw: float = Field(ge=-1000.0, le=1000.0, default=0.0)
+    voltage: float = Field(ge=0.0, le=1000.0, default=230.0)
+    current: float = Field(ge=0.0, le=1000.0, default=0.0)
+    power_kw: float = Field(ge=-1000.0, le=1000.0, default=0.0)
     # Legacy field names (pre-simulator clients); mapped onto new fields.
-    production_kwh: float | None = Field(ge=0, default=None)
-    consumption_kwh: float | None = Field(ge=0, default=None)
-    battery_kwh: float | None = Field(default=None)
+    production_kwh: float | None = Field(ge=0, le=1000.0, default=None)
+    consumption_kwh: float | None = Field(ge=0, le=1000.0, default=None)
+    battery_kwh: float | None = Field(ge=-1000.0, le=1000.0, default=None)
 
 
 class TelemetryOut(BaseModel):

@@ -9,6 +9,7 @@ from app.config import settings
 from app.db import get_db
 from app.dependencies import get_current_user
 from app.models import User, UserRole
+from app.rate_limiter import RateLimiter
 from app.schemas import GoogleAuthRequest, RefreshRequest, TokenPair, UserCreate, UserLogin, UserOut
 from app.security import (
     create_access_token,
@@ -20,6 +21,9 @@ from app.security import (
 from app.services.wallet_service import get_or_create_wallet
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
+
+login_limiter = RateLimiter(requests_limit=5, time_window_seconds=60, scope="login")
+register_limiter = RateLimiter(requests_limit=5, time_window_seconds=60, scope="register")
 
 
 def _token_pair(user: User) -> TokenPair:
@@ -34,7 +38,12 @@ def _token_pair(user: User) -> TokenPair:
     )
 
 
-@router.post("/register", response_model=TokenPair, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/register",
+    response_model=TokenPair,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(register_limiter)],
+)
 def register(payload: UserCreate, db: Session = Depends(get_db)):
     if db.query(User).filter(User.email == payload.email).first():
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
@@ -53,7 +62,7 @@ def register(payload: UserCreate, db: Session = Depends(get_db)):
     return _token_pair(user)
 
 
-@router.post("/login", response_model=TokenPair)
+@router.post("/login", response_model=TokenPair, dependencies=[Depends(login_limiter)])
 def login(form: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == form.username).first()
     if user is None or not verify_password(form.password, user.hashed_password):
@@ -63,7 +72,7 @@ def login(form: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get
     return _token_pair(user)
 
 
-@router.post("/login-json", response_model=TokenPair)
+@router.post("/login-json", response_model=TokenPair, dependencies=[Depends(login_limiter)])
 def login_json(payload: UserLogin, db: Session = Depends(get_db)):
     """JSON-body login alternative for non-OAuth2 clients."""
     user = db.query(User).filter(User.email == payload.email).first()

@@ -16,9 +16,25 @@ from sqlalchemy.orm import sessionmaker
 from app.db import Base, engine, get_db
 from app.main import app
 from app.models import GridEdge, GridNode, User, UserRole
+from app.routers.auth import login_limiter, register_limiter
+from app.routers.wallets import deposit_self_limiter, transfer_limiter
 from app.security import hash_password
 
 TestSession = sessionmaker(bind=engine, autocommit=False, autoflush=False)
+
+
+@pytest.fixture(autouse=True)
+def reset_rate_limits():
+    """Reset in-memory rate limiters between tests to prevent test isolation leaks."""
+    login_limiter.reset()
+    register_limiter.reset()
+    transfer_limiter.reset()
+    deposit_self_limiter.reset()
+    yield
+    login_limiter.reset()
+    register_limiter.reset()
+    transfer_limiter.reset()
+    deposit_self_limiter.reset()
 
 
 @pytest.fixture(scope="session", autouse=True)

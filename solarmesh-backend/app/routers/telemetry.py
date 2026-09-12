@@ -121,10 +121,23 @@ def latest_telemetry(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Latest reading per device (optionally filtered to one device)."""
-    q = db.query(Telemetry)
+    """Latest reading per device owned by user (admins see all devices)."""
     if device_id:
-        q = q.filter(Telemetry.device_id == device_id)
+        device = db.get(Device, device_id)
+        if device is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Device not found")
+        if device.owner_id != user.id and user.role.value != "admin":
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your device")
+        q = db.query(Telemetry).filter(Telemetry.device_id == device_id)
+    else:
+        if user.role.value != "admin":
+            my_device_ids = [d.id for d in db.query(Device.id).filter(Device.owner_id == user.id).all()]
+            if not my_device_ids:
+                return []
+            q = db.query(Telemetry).filter(Telemetry.device_id.in_(my_device_ids))
+        else:
+            q = db.query(Telemetry)
+
     rows = q.order_by(Telemetry.recorded_at.desc()).limit(limit * 4).all()
     seen: set[str] = set()
     latest: list[Telemetry] = []
