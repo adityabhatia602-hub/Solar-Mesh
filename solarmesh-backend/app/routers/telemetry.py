@@ -117,7 +117,7 @@ def ingest_telemetry(payload: TelemetryIn, user: User = Depends(get_current_user
 @router.get("/api/telemetry/latest", response_model=list[TelemetryOut])
 def latest_telemetry(
     device_id: str | None = None,
-    limit: int = Query(default=50, ge=1, le=500),
+    limit: int = Query(default=50, ge=1, le=200),
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -141,7 +141,8 @@ def latest_telemetry(
 @router.get("/api/telemetry/device/{device_id}", response_model=list[TelemetryOut])
 def device_history(
     device_id: str,
-    limit: int = Query(default=100, ge=1, le=500),
+    limit: int = Query(default=100, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -154,6 +155,7 @@ def device_history(
         db.query(Telemetry)
         .filter(Telemetry.device_id == device_id)
         .order_by(Telemetry.recorded_at.desc())
+        .offset(offset)
         .limit(limit)
         .all()
     )

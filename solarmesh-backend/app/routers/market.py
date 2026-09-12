@@ -30,6 +30,8 @@ def place_order(payload: OrderCreate, user: User = Depends(get_current_user), db
 @router.get("/orders", response_model=list[OrderOut])
 def list_my_orders(
     status_filter: str | None = Query(default=None, alias="status"),
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -39,14 +41,15 @@ def list_my_orders(
             q = q.filter(Order.status == OrderStatus(status_filter))
         except ValueError:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Unknown status: {status_filter}")
-    return q.order_by(Order.created_at.desc()).limit(200).all()
+    return q.order_by(Order.created_at.desc()).offset(offset).limit(limit).all()
 
 
 @router.get("/orders/open", response_model=list[OrderOut])
 def list_open_orders(
     side: str | None = None,
     node_id: str | None = None,
-    limit: int = Query(default=100, ge=1, le=500),
+    limit: int = Query(default=100, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
 ):
     """All currently-open orders (public marketplace view)."""
@@ -60,7 +63,7 @@ def list_open_orders(
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Unknown side: {side}")
     if node_id:
         q = q.filter(Order.node_id == node_id)
-    return q.order_by(Order.created_at.desc()).limit(limit).all()
+    return q.order_by(Order.created_at.desc()).offset(offset).limit(limit).all()
 
 
 @router.get("/orderbook", response_model=OrderBookOut)
@@ -70,7 +73,8 @@ def get_order_book(node_id: str | None = None, db: Session = Depends(get_db)):
 
 @router.get("/trades", response_model=list[TradeOut])
 def list_trades(
-    limit: int = Query(default=50, ge=1, le=500),
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -79,6 +83,7 @@ def list_trades(
         db.query(Trade)
         .filter((Trade.seller_id == user.id) | (Trade.buyer_id == user.id))
         .order_by(Trade.created_at.desc())
+        .offset(offset)
         .limit(limit)
         .all()
     )

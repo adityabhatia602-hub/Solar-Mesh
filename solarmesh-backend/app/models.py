@@ -11,6 +11,7 @@ from sqlalchemy import (
     Enum,
     Float,
     ForeignKey,
+    Index,
     Integer,
     JSON,
     Numeric,
@@ -145,6 +146,9 @@ class Wallet(Base):
 
 class LedgerEntry(Base):
     __tablename__ = "ledger_entries"
+    __table_args__ = (
+        Index("ix_ledger_wallet_created", "wallet_id", "created_at"),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
     wallet_id: Mapped[str] = mapped_column(ForeignKey("wallets.id", ondelete="CASCADE"), index=True, nullable=False)
@@ -279,6 +283,11 @@ class GridEdge(Base):
 class Order(Base):
     """A market order: either an offer to sell energy or a bid to buy energy."""
     __tablename__ = "orders"
+    __table_args__ = (
+        Index("ix_orders_status_side_price", "status", "side", "price_per_kwh"),
+        Index("ix_orders_user_created", "user_id", "created_at"),
+        Index("ix_orders_user_node_status", "user_id", "node_id", "status"),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
     side: Mapped[OrderSide] = mapped_column(Enum(OrderSide), index=True, nullable=False)
@@ -318,6 +327,10 @@ class Order(Base):
 class Trade(Base):
     """An executed match between an offer and a bid."""
     __tablename__ = "trades"
+    __table_args__ = (
+        Index("ix_trades_seller_created", "seller_id", "created_at"),
+        Index("ix_trades_buyer_created", "buyer_id", "created_at"),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
     offer_id: Mapped[str] = mapped_column(ForeignKey("orders.id"), index=True, nullable=False)
@@ -365,6 +378,10 @@ class Trade(Base):
 class Telemetry(Base):
     """Periodic energy readings reported by devices (simulator or real IoT)."""
     __tablename__ = "telemetry"
+    __table_args__ = (
+        Index("ix_telemetry_device_recorded", "device_id", "recorded_at"),
+        Index("ix_telemetry_recorded_at_desc", "recorded_at"),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
     device_id: Mapped[str] = mapped_column(ForeignKey("devices.id", ondelete="CASCADE"), index=True, nullable=False)
@@ -419,6 +436,9 @@ class SimulationState(Base):
 class GridEvent(Base):
     """Congestion / outage events on grid edges for monitoring and demo badges."""
     __tablename__ = "grid_events"
+    __table_args__ = (
+        Index("ix_grid_events_type_created", "event_type", "created_at"),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
     edge_id: Mapped[str] = mapped_column(ForeignKey("grid_edges.id", ondelete="CASCADE"), index=True, nullable=False)

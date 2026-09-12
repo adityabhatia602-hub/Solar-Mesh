@@ -1,7 +1,7 @@
 """Grid topology and routing endpoints + device registration."""
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.db import get_db
@@ -34,8 +34,20 @@ def register_device(payload: DeviceCreate, user: User = Depends(get_current_user
 
 
 @router.get("/devices", response_model=list[DeviceOut])
-def list_my_devices(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    return db.query(Device).filter(Device.owner_id == user.id).all()
+def list_my_devices(
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return (
+        db.query(Device)
+        .filter(Device.owner_id == user.id)
+        .order_by(Device.created_at.desc())
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
 
 
 # ---------------------------------------------------------------- topology
