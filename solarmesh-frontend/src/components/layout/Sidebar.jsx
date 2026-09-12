@@ -19,31 +19,31 @@ const NAV_ITEMS = [
     name: 'Dashboard',
     path: '/',
     icon: LayoutDashboard,
-    description: 'Real-time solar generation & energy flow',
+    description: 'Live solar generation & home energy balance',
   },
   {
-    name: 'Marketplace',
+    name: 'Community Market',
     path: '/marketplace',
     icon: ArrowLeftRight,
-    description: 'P2P Order book & bilateral trading',
+    description: 'Buy & sell excess solar power locally',
   },
   {
-    name: 'Trades & Settlement',
+    name: 'Trade Receipts',
     path: '/trades',
     icon: History,
-    description: 'Matched deals & route explainability',
+    description: 'Completed transactions & receipts',
   },
   {
-    name: 'Grid & Topology',
+    name: 'Grid Network',
     path: '/network',
     icon: Network,
-    description: 'Transmission paths & line congestion',
+    description: 'Neighborhood substations & power flow',
   },
   {
-    name: 'Analytics & KPIs',
+    name: 'Analytics',
     path: '/analytics',
     icon: BarChart3,
-    description: 'Clearing trends & carbon metrics',
+    description: 'Clean energy savings & carbon offset',
   },
   {
     name: 'Blockchain Ledger',
@@ -52,10 +52,10 @@ const NAV_ITEMS = [
     description: 'Cryptographic proof & smart escrow',
   },
   {
-    name: 'Devices & Profile',
+    name: 'Energy Devices',
     path: '/profile',
     icon: Cpu,
-    description: 'Solar panels, battery & node setup',
+    description: 'Solar panels, battery & account',
   },
 ];
 
@@ -83,7 +83,7 @@ export const Sidebar = ({ isOpen, onClose }) => {
           <span className="font-bold text-slate-800 text-sm">SolarMesh Navigation</span>
           <button
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100"
+            className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -93,7 +93,7 @@ export const Sidebar = ({ isOpen, onClose }) => {
         <div className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
           <div className="px-3 pb-2">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-              Platform Modules
+              Navigation
             </span>
           </div>
 
@@ -108,7 +108,7 @@ export const Sidebar = ({ isOpen, onClose }) => {
                 className={({ isActive }) =>
                   `flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-colors duration-150 ${
                     isActive
-                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60 shadow-xs'
+                      ? 'bg-slate-100 text-slate-900 border border-slate-200/80 shadow-2xs'
                       : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 border border-transparent'
                   }`
                 }
@@ -117,7 +117,7 @@ export const Sidebar = ({ isOpen, onClose }) => {
                   <>
                     <Icon
                       className={`w-4 h-4 shrink-0 transition-colors ${
-                        isActive ? 'text-emerald-600' : 'text-slate-400'
+                        isActive ? 'text-emerald-700' : 'text-slate-400'
                       }`}
                     />
                     <div className="flex-1 min-w-0">
@@ -135,28 +135,28 @@ export const Sidebar = ({ isOpen, onClose }) => {
           <div className="p-3 bg-white rounded-xl border border-slate-200/80 shadow-2xs space-y-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-1.5 text-xs font-bold text-slate-800">
-                <Activity className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Grid Dispatch</span>
+                <Activity className="w-3.5 h-3.5 text-slate-600" />
+                <span>Grid Status</span>
               </div>
-              <span className="text-[10px] font-bold px-1.5 py-0.5 bg-emerald-100 text-emerald-800 rounded">
-                Optimal
+              <span className="text-[10px] font-bold px-1.5 py-0.5 bg-emerald-50 text-emerald-800 border border-emerald-200/60 rounded">
+                Online & Healthy
               </span>
             </div>
 
             <div className="space-y-1 text-[11px] text-slate-500">
               <div className="flex justify-between">
-                <span>Avg Line Loss:</span>
+                <span>Avg Transmission Loss:</span>
                 <span className="font-semibold text-slate-700">~2.1%</span>
               </div>
               <div className="flex justify-between">
-                <span>Active Routing:</span>
-                <span className="font-semibold text-slate-700">Dijkstra Shortest</span>
+                <span>Routing:</span>
+                <span className="font-semibold text-slate-700">Smart Local Path</span>
               </div>
             </div>
 
             <div className="pt-1 border-t border-slate-100 text-[10px] text-slate-400 flex items-center justify-between">
-              <span>Node Congestion:</span>
-              <span className="text-emerald-600 font-semibold">Low (0.24)</span>
+              <span>Substation Headroom:</span>
+              <span className="text-emerald-700 font-semibold">Normal (76%)</span>
             </div>
           </div>
         </div>

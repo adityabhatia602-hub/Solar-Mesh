@@ -5,12 +5,12 @@ import Sidebar from './Sidebar';
 import { walletApi } from '../../api/wallet';
 import { useMarket } from '../../hooks/useMarket';
 import { formatCurrency, formatKwh } from '../../utils/formatters';
-import { Zap, Flame, ShieldAlert } from 'lucide-react';
+import { Zap, Activity } from 'lucide-react';
 
 export const AppLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [wallet, setWallet] = useState(null);
-  const { liveTrades, recentEvents, refreshCounter } = useMarket();
+  const { liveTrades, refreshCounter } = useMarket();
   const location = useLocation();
 
   // Fetch wallet balance
@@ -19,7 +19,7 @@ export const AppLayout = () => {
       const data = await walletApi.getWallet();
       setWallet(data);
     } catch (err) {
-      console.warn('Failed to load wallet:', err);
+      console.warn('Failed to load wallet balance:', err);
     }
   }, []);
 
@@ -28,41 +28,47 @@ export const AppLayout = () => {
   }, [fetchWallet, refreshCounter, location.pathname]);
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col antialiased">
+    <div className="min-h-screen bg-slate-50 flex flex-col antialiased transition-colors duration-150">
       {/* Real-time Market Marquee Ticker */}
-      <div className="bg-slate-900 text-slate-300 text-xs py-1.5 px-4 overflow-hidden border-b border-slate-800 flex items-center justify-between">
+      <div className="bg-slate-900 text-slate-300 text-xs py-2 px-4 overflow-hidden border-b border-slate-800 flex items-center justify-between">
         <div className="flex items-center space-x-2 shrink-0 pr-4">
           <span className="flex h-2 w-2 relative">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
           </span>
           <span className="font-bold text-[11px] text-white uppercase tracking-wider">
-            Live Grid Matcher:
+            Live Clearing Stream:
           </span>
         </div>
 
         <div className="flex-1 overflow-x-auto whitespace-nowrap scrollbar-none flex items-center space-x-6 text-[11px]">
           {liveTrades.length > 0 ? (
             liveTrades.slice(0, 5).map((t, idx) => (
-              <span key={t.id || idx} className="inline-flex items-center space-x-1.5 text-emerald-400 font-medium">
-                <Zap className="w-3 h-3 text-amber-400" />
-                <span>Trade settled:</span>
+              <span
+                key={`${t.id || 'trade'}-${idx}`}
+                className="inline-flex items-center space-x-1.5 text-slate-300 font-medium shrink-0"
+              >
+                <Zap className="w-3 h-3 text-slate-400" />
+                <span className="text-slate-400">Trade:</span>
                 <span className="text-white font-bold">{formatKwh(t.quantity_kwh)}</span>
-                <span>@</span>
-                <span className="text-amber-300 font-bold">{formatCurrency(t.price_per_kwh)}/kWh</span>
-                <span className="text-slate-400 text-[10px]">(Total: {formatCurrency(t.total_amount)})</span>
+                <span className="text-slate-400">@</span>
+                <span className="text-emerald-400 font-semibold">{formatCurrency(t.price_per_kwh)}/kWh</span>
+                <span className="text-slate-400 text-[10px]">
+                  (Settled: {formatCurrency(t.total_amount)})
+                </span>
               </span>
             ))
           ) : (
-            <span className="text-slate-400 font-mono text-[11px]">
-              Continuous double-sided auction active • Optimization algorithm: Dijkstra loss-weighted routing • Next dispatch cycle: 30s
+            <span className="text-slate-400 text-[11px] font-medium">
+              Network double auction active • Continuous 5s dispatch cycles with transmission loss routing
             </span>
           )}
         </div>
 
-        <div className="hidden md:flex items-center space-x-2 pl-4 text-slate-400 text-[10px]">
-          <span>Grid Loss Fee:</span>
-          <span className="text-emerald-400 font-bold">$0.015/kWh</span>
+        <div className="hidden lg:flex items-center space-x-2 pl-4 text-slate-400 text-[11px] shrink-0">
+          <Activity className="w-3.5 h-3.5 text-slate-400" />
+          <span>Base Line Loss:</span>
+          <span className="text-emerald-400 font-bold">~2.0%</span>
         </div>
       </div>
 

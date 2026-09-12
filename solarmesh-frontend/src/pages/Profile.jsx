@@ -12,6 +12,7 @@ import {
   Check,
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import { useToast } from '../hooks/useToast';
 import { walletApi } from '../api/wallet';
 import { gridApi } from '../api/grid';
 import PageHeader from '../components/layout/PageHeader';
@@ -23,6 +24,7 @@ import { formatCurrency, formatKwh, formatDate } from '../utils/formatters';
 
 export const Profile = () => {
   const { user, isProsumer } = useAuth();
+  const toast = useToast();
 
   const [wallet, setWallet] = useState(null);
   const [ledger, setLedger] = useState([]);
@@ -70,10 +72,11 @@ export const Profile = () => {
     try {
       setDepositing(true);
       await walletApi.depositSelf(Number(depositAmount));
+      toast.success(`Deposited $${Number(depositAmount).toFixed(2)} test funds`);
       await loadData();
       setIsDepositOpen(false);
     } catch (err) {
-      console.error('Deposit error:', err);
+      toast.error('Deposit error: ' + (err.response?.data?.detail || err.message));
     } finally {
       setDepositing(false);
     }
@@ -89,11 +92,12 @@ export const Profile = () => {
         device_type: deviceType,
         capacity_kwh: Number(deviceCapacity),
       });
+      toast.success(`Registered device: ${deviceName}`);
       await loadData();
       setIsDeviceModalOpen(false);
       setDeviceName('');
     } catch (err) {
-      console.error('Device registration failed:', err);
+      toast.error('Device registration failed: ' + (err.response?.data?.detail || err.message));
     } finally {
       setRegisteringDevice(false);
     }
@@ -121,13 +125,13 @@ export const Profile = () => {
             </div>
             <div>
               <span className="text-slate-400 block">Participant Role</span>
-              <Badge variant={isProsumer ? 'amber' : 'blue'}>
+              <Badge variant="slate">
                 {user?.role?.toUpperCase()}
               </Badge>
             </div>
             <div>
               <span className="text-slate-400 block">Account Status</span>
-              <span className="inline-flex items-center text-emerald-700 font-bold">
+              <span className="inline-flex items-center text-emerald-800 font-semibold text-xs">
                 <Check className="w-3.5 h-3.5 mr-1 text-emerald-600" /> Active & Verified
               </span>
             </div>
@@ -146,32 +150,32 @@ export const Profile = () => {
               icon={PlusCircle}
               onClick={() => setIsDepositOpen(true)}
             >
-              Test Faucet Deposit
+              Add Test Funds
             </Button>
           }
         >
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-1">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
             <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
               <span className="text-[10px] text-slate-400 uppercase font-bold block">Available</span>
-              <span className="text-lg font-extrabold text-emerald-700">
+              <span className="text-lg font-bold text-slate-900">
                 {formatCurrency(wallet?.available ?? 0)}
               </span>
             </div>
             <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
               <span className="text-[10px] text-slate-400 uppercase font-bold block">In Escrow</span>
-              <span className="text-lg font-extrabold text-amber-700">
+              <span className="text-lg font-bold text-slate-900">
                 {formatCurrency(wallet?.reserved ?? 0)}
               </span>
             </div>
             <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
               <span className="text-[10px] text-slate-400 uppercase font-bold block">Energy Sold</span>
-              <span className="text-lg font-extrabold text-slate-900">
+              <span className="text-lg font-bold text-slate-900">
                 {formatKwh(wallet?.energy_kwh_sold ?? 0)}
               </span>
             </div>
             <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
               <span className="text-[10px] text-slate-400 uppercase font-bold block">Energy Bought</span>
-              <span className="text-lg font-extrabold text-slate-900">
+              <span className="text-lg font-bold text-slate-900">
                 {formatKwh(wallet?.energy_kwh_bought ?? 0)}
               </span>
             </div>
@@ -255,7 +259,7 @@ export const Profile = () => {
                 {ledger.map((entry) => (
                   <tr key={entry.id} className="hover:bg-slate-50/60">
                     <td className="py-2.5 px-4">
-                      <span className="font-mono font-bold uppercase text-[11px] px-2 py-0.5 rounded bg-slate-100 text-slate-800">
+                      <span className="font-mono font-bold uppercase text-[11px] px-2 py-0.5 rounded bg-slate-100 text-slate-800 border border-slate-200">
                         {entry.entry_type}
                       </span>
                     </td>
@@ -280,7 +284,7 @@ export const Profile = () => {
       <Modal
         isOpen={isDepositOpen}
         onClose={() => setIsDepositOpen(false)}
-        title="Hackathon Test Wallet Faucet"
+        title="Wallet Testnet Faucet"
         subtitle="Instantly deposit mock USD testnet currency into your wallet"
       >
         <div className="space-y-4">
@@ -290,7 +294,7 @@ export const Profile = () => {
                 key={amt}
                 type="button"
                 onClick={() => setDepositAmount(amt)}
-                className={`py-2 px-3 rounded-lg text-sm font-semibold border transition-all ${
+                className={`py-2 px-3 rounded-lg text-sm font-semibold border transition-all cursor-pointer ${
                   depositAmount === amt
                     ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
                     : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
@@ -311,7 +315,7 @@ export const Profile = () => {
               max="10000"
               value={depositAmount}
               onChange={(e) => setDepositAmount(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-semibold focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-semibold bg-white text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
             />
           </div>
 
@@ -347,7 +351,7 @@ export const Profile = () => {
               value={deviceName}
               onChange={(e) => setDeviceName(e.target.value)}
               placeholder="e.g. South Roof Solar Array (5kW)"
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-medium bg-white text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
               required
             />
           </div>
@@ -359,7 +363,7 @@ export const Profile = () => {
             <select
               value={deviceType}
               onChange={(e) => setDeviceType(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-medium bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-medium bg-white text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
             >
               <option value="solar_panel">Solar PV Panel Array</option>
               <option value="battery">Energy Storage System (Battery)</option>
@@ -374,7 +378,7 @@ export const Profile = () => {
             <select
               value={deviceNodeId}
               onChange={(e) => setDeviceNodeId(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-medium bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-medium bg-white text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
               required
             >
               {nodes.map((n) => (
@@ -396,7 +400,7 @@ export const Profile = () => {
               max="500"
               value={deviceCapacity}
               onChange={(e) => setDeviceCapacity(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-medium bg-white text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
               required
             />
           </div>

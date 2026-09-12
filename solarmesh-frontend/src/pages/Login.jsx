@@ -43,11 +43,11 @@ export const Login = () => {
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
         {/* Logo */}
-        <div className="mx-auto w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-600 to-amber-500 flex items-center justify-center text-white shadow-md shadow-emerald-600/20 mb-3">
-          <Sun className="w-7 h-7" />
+        <div className="mx-auto w-12 h-12 rounded-2xl bg-slate-900 flex items-center justify-center text-white shadow-2xs mb-3">
+          <Sun className="w-6 h-6" />
         </div>
         <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
-          Sign in to Solar<span className="text-emerald-600">Mesh</span>
+          Sign in to Solar<span className="text-emerald-700">Mesh</span>
         </h2>
         <p className="mt-1 text-xs text-slate-500">
           Network-aware peer-to-peer solar energy trading marketplace
@@ -55,7 +55,7 @@ export const Login = () => {
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md px-4 sm:px-0">
-        <div className="bg-white py-8 px-6 sm:px-10 shadow-sm border border-slate-200/80 rounded-2xl">
+        <div className="bg-white py-8 px-6 sm:px-10 shadow-2xs border border-slate-200/80 rounded-2xl">
           {error && (
             <div className="mb-5 p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-xs font-semibold text-rose-800">
               {error}
@@ -73,7 +73,7 @@ export const Login = () => {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm bg-white text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                   placeholder="name@domain.com"
                   required
                 />
@@ -90,7 +90,7 @@ export const Login = () => {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm bg-white text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                   placeholder="••••••••"
                   required
                 />
@@ -118,17 +118,17 @@ export const Login = () => {
               <button
                 type="button"
                 onClick={() => handleQuickFill('prosumer')}
-                className="py-2 px-2.5 rounded-lg text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 transition-colors flex items-center justify-center space-x-1"
+                className="py-2 px-2.5 rounded-lg text-xs font-semibold bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 transition-colors flex items-center justify-center space-x-1.5 shadow-2xs cursor-pointer"
               >
-                <Sun className="w-3.5 h-3.5 text-amber-600" />
+                <Sun className="w-3.5 h-3.5 text-slate-600" />
                 <span>Prosumer Demo</span>
               </button>
               <button
                 type="button"
                 onClick={() => handleQuickFill('consumer')}
-                className="py-2 px-2.5 rounded-lg text-xs font-semibold bg-blue-50 text-blue-800 border border-blue-200 hover:bg-blue-100 transition-colors flex items-center justify-center space-x-1"
+                className="py-2 px-2.5 rounded-lg text-xs font-semibold bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 transition-colors flex items-center justify-center space-x-1.5 shadow-2xs cursor-pointer"
               >
-                <Zap className="w-3.5 h-3.5 text-blue-600" />
+                <Zap className="w-3.5 h-3.5 text-slate-600" />
                 <span>Consumer Demo</span>
               </button>
             </div>
@@ -136,7 +136,7 @@ export const Login = () => {
 
           <div className="mt-6 text-center text-xs text-slate-500">
             Don't have an account?{' '}
-            <Link to="/register" className="font-semibold text-emerald-600 hover:text-emerald-700">
+            <Link to="/register" className="font-semibold text-emerald-700 hover:text-emerald-800">
               Register as Prosumer / Consumer
             </Link>
           </div>

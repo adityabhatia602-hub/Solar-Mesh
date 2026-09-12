@@ -9,7 +9,6 @@ export const GridTopologyGraph = ({ nodes = [], edges = [], onSelectNode }) => {
   // Layout node coordinates in a circular or structured mesh layout
   const getNodeCoordinates = (index, total) => {
     if (total === 0) return { x: 300, y: 200 };
-    // Center at (320, 200), radius 140
     const centerX = 360;
     const centerY = 200;
     const radius = 130;
@@ -40,7 +39,7 @@ export const GridTopologyGraph = ({ nodes = [], edges = [], onSelectNode }) => {
   const selectedNode = nodes.find((n) => n.id === selectedNodeId);
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs">
+    <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs transition-colors duration-150">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 mb-2 border-b border-slate-100 gap-2">
         <div className="flex items-center space-x-2.5">
           <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg">
@@ -218,7 +217,7 @@ export const GridTopologyGraph = ({ nodes = [], edges = [], onSelectNode }) => {
               </span>
               <button
                 onClick={() => setSelectedNodeId(null)}
-                className="text-slate-400 hover:text-white text-[11px]"
+                className="text-slate-400 hover:text-white text-[11px] cursor-pointer"
               >
                 ✕
               </button>

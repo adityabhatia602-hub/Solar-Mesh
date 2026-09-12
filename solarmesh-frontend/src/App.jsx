@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { MarketProvider } from './context/MarketContext';
+import { ToastProvider } from './context/ToastContext';
 import { useAuth } from './hooks/useAuth';
 
 import AppLayout from './components/layout/AppLayout';
@@ -58,49 +59,51 @@ export function App() {
   return (
     <AuthProvider>
       <MarketProvider>
-        <BrowserRouter>
-          <Routes>
-            {/* Public Auth Routes */}
-            <Route
-              path="/login"
-              element={
-                <PublicOnlyRoute>
-                  <Login />
-                </PublicOnlyRoute>
-              }
-            />
-            <Route
-              path="/register"
-              element={
-                <PublicOnlyRoute>
-                  <Register />
-                </PublicOnlyRoute>
-              }
-            />
+        <ToastProvider>
+          <BrowserRouter>
+            <Routes>
+              {/* Public Auth Routes */}
+              <Route
+                path="/login"
+                element={
+                  <PublicOnlyRoute>
+                    <Login />
+                  </PublicOnlyRoute>
+                }
+              />
+              <Route
+                path="/register"
+                element={
+                  <PublicOnlyRoute>
+                    <Register />
+                  </PublicOnlyRoute>
+                }
+              />
 
-            {/* Protected Dashboard Shell */}
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <AppLayout />
-                </ProtectedRoute>
-              }
-            >
-              <Route index element={<Dashboard />} />
-              <Route path="marketplace" element={<Marketplace />} />
-              <Route path="trades" element={<Trades />} />
-              <Route path="trades/:id" element={<TradeDetails />} />
-              <Route path="network" element={<Network />} />
-              <Route path="analytics" element={<Analytics />} />
-              <Route path="blockchain" element={<Blockchain />} />
-              <Route path="profile" element={<Profile />} />
-            </Route>
+              {/* Protected Dashboard Shell */}
+              <Route
+                path="/"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout />
+                  </ProtectedRoute>
+                }
+              >
+                <Route index element={<Dashboard />} />
+                <Route path="marketplace" element={<Marketplace />} />
+                <Route path="trades" element={<Trades />} />
+                <Route path="trades/:id" element={<TradeDetails />} />
+                <Route path="network" element={<Network />} />
+                <Route path="analytics" element={<Analytics />} />
+                <Route path="blockchain" element={<Blockchain />} />
+                <Route path="profile" element={<Profile />} />
+              </Route>
 
-            {/* 404 Catch-all */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
+              {/* 404 Catch-all */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </ToastProvider>
       </MarketProvider>
     </AuthProvider>
   );

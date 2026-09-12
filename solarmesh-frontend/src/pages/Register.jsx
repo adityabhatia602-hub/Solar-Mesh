@@ -38,11 +38,11 @@ export const Register = () => {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
-        <div className="mx-auto w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-600 to-amber-500 flex items-center justify-center text-white shadow-md shadow-emerald-600/20 mb-3">
-          <Sun className="w-7 h-7" />
+        <div className="mx-auto w-12 h-12 rounded-2xl bg-slate-900 flex items-center justify-center text-white shadow-2xs mb-3">
+          <Sun className="w-6 h-6" />
         </div>
         <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
-          Join Solar<span className="text-emerald-600">Mesh</span>
+          Join Solar<span className="text-emerald-700">Mesh</span>
         </h2>
         <p className="mt-1 text-xs text-slate-500">
           Select your role to participate in decentralized peer-to-peer energy exchange
@@ -50,7 +50,7 @@ export const Register = () => {
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md px-4 sm:px-0">
-        <div className="bg-white py-8 px-6 sm:px-10 shadow-sm border border-slate-200/80 rounded-2xl">
+        <div className="bg-white py-8 px-6 sm:px-10 shadow-2xs border border-slate-200/80 rounded-2xl">
           {error && (
             <div className="mb-5 p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-xs font-semibold text-rose-800">
               {error}
@@ -67,13 +67,13 @@ export const Register = () => {
                 <button
                   type="button"
                   onClick={() => setRole('prosumer')}
-                  className={`p-3 rounded-xl border text-left transition-all ${
+                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
                     role === 'prosumer'
-                      ? 'bg-amber-50/70 border-amber-400 text-amber-900 shadow-xs'
+                      ? 'bg-slate-100 border-slate-300 text-slate-900 shadow-2xs'
                       : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                   }`}
                 >
-                  <Sun className={`w-5 h-5 mb-1 ${role === 'prosumer' ? 'text-amber-600' : 'text-slate-400'}`} />
+                  <Sun className={`w-5 h-5 mb-1 ${role === 'prosumer' ? 'text-slate-800' : 'text-slate-400'}`} />
                   <div className="text-xs font-bold">Solar Prosumer</div>
                   <div className="text-[10px] text-slate-500 mt-0.5">I generate & sell solar surplus</div>
                 </button>
@@ -81,13 +81,13 @@ export const Register = () => {
                 <button
                   type="button"
                   onClick={() => setRole('consumer')}
-                  className={`p-3 rounded-xl border text-left transition-all ${
+                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
                     role === 'consumer'
-                      ? 'bg-blue-50/70 border-blue-400 text-blue-900 shadow-xs'
+                      ? 'bg-slate-100 border-slate-300 text-slate-900 shadow-2xs'
                       : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                   }`}
                 >
-                  <Zap className={`w-5 h-5 mb-1 ${role === 'consumer' ? 'text-blue-600' : 'text-slate-400'}`} />
+                  <Zap className={`w-5 h-5 mb-1 ${role === 'consumer' ? 'text-slate-800' : 'text-slate-400'}`} />
                   <div className="text-xs font-bold">Clean Consumer</div>
                   <div className="text-[10px] text-slate-500 mt-0.5">I buy local green electricity</div>
                 </button>
@@ -104,7 +104,7 @@ export const Register = () => {
                   type="text"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm bg-white text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                   placeholder="Jane Doe"
                   required
                 />
@@ -121,7 +121,7 @@ export const Register = () => {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm bg-white text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                   placeholder="name@domain.com"
                   required
                 />
@@ -138,7 +138,7 @@ export const Register = () => {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm bg-white text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                   placeholder="••••••••"
                   minLength={8}
                   required

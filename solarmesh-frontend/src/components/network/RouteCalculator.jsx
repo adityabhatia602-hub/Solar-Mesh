@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Route, ArrowRight, Zap, AlertCircle, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import Button from '../common/Button';
 import { gridApi } from '../../api/grid';
+import { useToast } from '../../hooks/useToast';
 import { formatCurrency, formatPercent } from '../../utils/formatters';
 
 export const RouteCalculator = ({ nodes = [] }) => {
@@ -10,6 +11,7 @@ export const RouteCalculator = ({ nodes = [] }) => {
   const [quote, setQuote] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const toast = useToast();
 
   useEffect(() => {
     if (nodes.length >= 2) {
@@ -25,10 +27,22 @@ export const RouteCalculator = ({ nodes = [] }) => {
       setError(null);
       const data = await gridApi.quoteRoute(fromNode, toNode);
       setQuote(data);
+      if (data.feasible) {
+        toast.success(
+          `Computed optimal delivery path (${data.path_node_ids?.length || 0} nodes, ${formatCurrency(
+            data.total_network_cost_per_kwh,
+            '$',
+            4
+          )}/kWh delivery fee)`
+        );
+      } else {
+        toast.error('Path congested or unroutable between selected nodes');
+      }
     } catch (err) {
       const msg = err.response?.data?.detail || err.message || 'Route calculation failed';
       setError(msg);
       setQuote(null);
+      toast.error('Route error: ' + msg);
     } finally {
       setLoading(false);
     }
@@ -41,9 +55,9 @@ export const RouteCalculator = ({ nodes = [] }) => {
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs">
+    <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs transition-colors duration-150">
       <div className="flex items-center space-x-2.5 pb-4 mb-4 border-b border-slate-100">
-        <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+        <div className="p-2 bg-slate-100 text-slate-700 rounded-lg">
           <Route className="w-5 h-5" />
         </div>
         <div>
@@ -70,7 +84,7 @@ export const RouteCalculator = ({ nodes = [] }) => {
           <select
             value={fromNode}
             onChange={(e) => setFromNode(e.target.value)}
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-medium bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+            className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-medium bg-white text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
           >
             {nodes.map((n) => (
               <option key={n.id} value={n.id}>
@@ -87,7 +101,7 @@ export const RouteCalculator = ({ nodes = [] }) => {
           <select
             value={toNode}
             onChange={(e) => setToNode(e.target.value)}
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-medium bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+            className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-medium bg-white text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
           >
             {nodes.map((n) => (
               <option key={n.id} value={n.id}>
@@ -116,11 +130,11 @@ export const RouteCalculator = ({ nodes = [] }) => {
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-800">Route Feasibility:</span>
             {quote.feasible ? (
-              <span className="inline-flex items-center text-xs font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded">
+              <span className="inline-flex items-center text-xs font-bold text-emerald-700 bg-emerald-100 border border-transparent px-2 py-0.5 rounded">
                 <CheckCircle2 className="w-3.5 h-3.5 mr-1 text-emerald-600" /> Feasible & Open
               </span>
             ) : (
-              <span className="inline-flex items-center text-xs font-bold text-rose-700 bg-rose-100 px-2 py-0.5 rounded">
+              <span className="inline-flex items-center text-xs font-bold text-rose-700 bg-rose-100 border border-transparent px-2 py-0.5 rounded">
                 Congestion Blocked
               </span>
             )}

@@ -13,15 +13,15 @@ export const Card = ({
 }) => {
   return (
     <div
-      className={`bg-white rounded-xl border border-slate-200/80 shadow-xs transition-shadow duration-200 hover:shadow-sm ${className}`}
+      className={`bg-white rounded-xl border border-slate-200/80 shadow-xs transition-all duration-200 hover:shadow-sm ${className}`}
       {...props}
     >
       {(title || action || Icon) && (
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
           <div className="flex items-center space-x-3">
             {Icon && (
-              <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg shrink-0">
-                <Icon className="w-5 h-5" />
+              <div className="p-2 bg-slate-100 text-slate-700 rounded-lg shrink-0">
+                <Icon className="w-4 h-4" />
               </div>
             )}
             <div>

@@ -16,6 +16,7 @@ import Card from '../components/common/Card';
 import StatCard from '../components/common/StatCard';
 import GridTopologyGraph from '../components/network/GridTopologyGraph';
 import RouteCalculator from '../components/network/RouteCalculator';
+import DemoSandboxDrawer from '../components/common/DemoSandboxDrawer';
 import { formatPercent, formatKw } from '../utils/formatters';
 
 export const Network = () => {
@@ -57,8 +58,8 @@ export const Network = () => {
   return (
     <div className="space-y-6 sm:space-y-8">
       <PageHeader
-        title="Physical Grid Topology & SCADA Dispatch"
-        subtitle="Live telemetry on electrical substation nodes, transmission line capacities, and dynamic impedance losses"
+        title="Physical Grid Topology & Substations"
+        subtitle="Live telemetry on neighborhood electrical nodes, transmission lines, and power flow"
         actions={
           <Button
             variant="secondary"
@@ -67,7 +68,7 @@ export const Network = () => {
             onClick={fetchTopology}
             isLoading={loading}
           >
-            Refresh Grid Telemetry
+            Refresh Grid
           </Button>
         }
       />
@@ -75,9 +76,9 @@ export const Network = () => {
       {/* High-level Network Metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          title="Active Grid Substations"
+          title="Substation Nodes"
           value={nodes.length}
-          subtitle="Interconnected microgrid nodes"
+          subtitle="Interconnected local nodes"
           icon={NetworkIcon}
           accent="blue"
           trend="100% Operational"
@@ -87,30 +88,30 @@ export const Network = () => {
         <StatCard
           title="Avg Line Transmission Loss"
           value={formatPercent(avgLoss, 2)}
-          subtitle="Dijkstra loss minimization"
+          subtitle="Optimized shortest paths"
           icon={Zap}
           accent="emerald"
-          trend="-0.4% vs radial grid"
+          trend="Minimal Line Loss"
           trendDirection="up"
         />
 
         <StatCard
-          title="Mean Network Congestion"
+          title="Grid Congestion Level"
           value={formatPercent(avgCongestion, 1)}
-          subtitle="Thermal line headroom available"
+          subtitle="Headroom available"
           icon={Activity}
           accent="amber"
-          trend="Low Congestion"
+          trend="Normal Load"
           trendDirection="up"
         />
 
         <StatCard
-          title="Total Transmission Capacity"
+          title="Total Line Capacity"
           value={formatKw(totalCapacity, 0)}
           subtitle={`Current load: ${formatKw(totalLoad, 0)}`}
           icon={ShieldCheck}
           accent="emerald"
-          trend="N-1 Contingency Safe"
+          trend="N-1 Safe"
           trendDirection="up"
         />
       </div>
@@ -123,8 +124,8 @@ export const Network = () => {
 
       {/* Substation Nodes Table */}
       <Card
-        title="Substation Nodal Directory"
-        subtitle="Individual node congestion indices, regional zones, and equipment status"
+        title="Substation Directory"
+        subtitle="Individual node status, regional zones, and equipment condition"
         icon={NetworkIcon}
       >
         <div className="overflow-x-auto">
@@ -134,8 +135,8 @@ export const Network = () => {
                 <th className="py-3 px-4">Node Code</th>
                 <th className="py-3 px-4">Substation Name</th>
                 <th className="py-3 px-4">Type</th>
-                <th className="py-3 px-4">Region</th>
-                <th className="py-3 px-4">Thermal Congestion Level</th>
+                <th className="py-3 px-4">Neighborhood Zone</th>
+                <th className="py-3 px-4">Load Level</th>
                 <th className="py-3 px-4 text-right">Status</th>
               </tr>
             </thead>
@@ -159,14 +160,14 @@ export const Network = () => {
                     <td className="py-3 px-4">
                       <div className="w-36">
                         <div className="flex justify-between text-[11px] font-semibold mb-1">
-                          <span className={congPct > 70 ? 'text-rose-600' : congPct > 45 ? 'text-amber-600' : 'text-emerald-600'}>
+                          <span className={congPct > 70 ? 'text-rose-600' : congPct > 45 ? 'text-amber-600' : 'text-emerald-700'}>
                             {congPct}%
                           </span>
                         </div>
                         <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
                           <div
                             className={`h-full rounded-full transition-all duration-300 ${
-                              congPct > 70 ? 'bg-rose-500' : congPct > 45 ? 'bg-amber-500' : 'bg-emerald-500'
+                              congPct > 70 ? 'bg-rose-500' : congPct > 45 ? 'bg-amber-500' : 'bg-emerald-600'
                             }`}
                             style={{ width: `${congPct}%` }}
                           />
@@ -175,7 +176,7 @@ export const Network = () => {
                     </td>
                     <td className="py-3 px-4 text-right">
                       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
-                        Synchronized
+                        Online
                       </span>
                     </td>
                   </tr>
@@ -185,6 +186,9 @@ export const Network = () => {
           </table>
         </div>
       </Card>
+
+      {/* Demo Sandbox Drawer */}
+      <DemoSandboxDrawer onActionComplete={fetchTopology} />
     </div>
   );
 };

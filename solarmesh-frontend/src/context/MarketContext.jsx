@@ -74,8 +74,12 @@ export const MarketProvider = ({ children }) => {
           setRecentEvents((prev) => [eventItem, ...prev.slice(0, 49)]);
 
           // Handle specific event types
-          if (payload.type === 'trade') {
-            setLiveTrades((prev) => [payload.data, ...prev.slice(0, 24)]);
+          if (payload.type === 'trade' && payload.data) {
+            setLiveTrades((prev) => {
+              const incomingId = payload.data.id;
+              const filtered = prev.filter((t) => t.id !== incomingId);
+              return [payload.data, ...filtered.slice(0, 24)];
+            });
             triggerGlobalRefresh();
           } else if (payload.type === 'order_created' || payload.type === 'order_cancelled') {
             triggerGlobalRefresh();

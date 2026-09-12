@@ -3,29 +3,29 @@ import { ArrowUpRight, ArrowDownRight } from 'lucide-react';
 
 const ACCENTS = {
   emerald: {
-    bg: 'bg-emerald-50/70',
-    iconBg: 'bg-emerald-500/10 text-emerald-600',
-    border: 'border-emerald-100',
+    bg: 'bg-white',
+    iconBg: 'bg-emerald-50 text-emerald-700 border border-emerald-200/60',
+    border: 'border-slate-200/80',
   },
   amber: {
-    bg: 'bg-amber-50/70',
-    iconBg: 'bg-amber-500/10 text-amber-600',
-    border: 'border-amber-100',
+    bg: 'bg-white',
+    iconBg: 'bg-slate-100 text-slate-700 border border-slate-200',
+    border: 'border-slate-200/80',
   },
   blue: {
-    bg: 'bg-blue-50/70',
-    iconBg: 'bg-blue-500/10 text-blue-600',
-    border: 'border-blue-100',
+    bg: 'bg-white',
+    iconBg: 'bg-slate-100 text-slate-700 border border-slate-200',
+    border: 'border-slate-200/80',
   },
   purple: {
-    bg: 'bg-purple-50/70',
-    iconBg: 'bg-purple-500/10 text-purple-600',
-    border: 'border-purple-100',
+    bg: 'bg-white',
+    iconBg: 'bg-slate-100 text-slate-700 border border-slate-200',
+    border: 'border-slate-200/80',
   },
   slate: {
-    bg: 'bg-slate-50/70',
-    iconBg: 'bg-slate-500/10 text-slate-600',
-    border: 'border-slate-200',
+    bg: 'bg-white',
+    iconBg: 'bg-slate-100 text-slate-700 border border-slate-200',
+    border: 'border-slate-200/80',
   },
 };
 

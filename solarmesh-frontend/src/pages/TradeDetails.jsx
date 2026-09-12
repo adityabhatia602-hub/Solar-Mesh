@@ -8,10 +8,11 @@ import {
   Clock,
   ArrowRight,
   CheckCircle2,
-  Cpu,
-  FileCode,
+  Copy,
+  Check,
 } from 'lucide-react';
 import { marketApi } from '../api/market';
+import { useToast } from '../hooks/useToast';
 import PageHeader from '../components/layout/PageHeader';
 import Button from '../components/common/Button';
 import Card from '../components/common/Card';
@@ -28,8 +29,10 @@ import { BLOCKCHAIN_CONFIG } from '../utils/constants';
 export const TradeDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const toast = useToast();
   const [trade, setTrade] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     const fetchTrade = async () => {
@@ -73,15 +76,20 @@ export const TradeDetails = () => {
 
   const txHash = pseudoTxHash(trade.id);
   const blockHash = pseudoBlockHash(184922);
-  const basePriceAmount = (trade.quantity_kwh || 0) * (trade.price_per_kwh || 0);
-  const networkFeeTotal = (trade.quantity_kwh || 0) * (trade.network_cost_per_kwh || 0);
+
+  const handleCopyHash = () => {
+    navigator.clipboard.writeText(txHash);
+    setCopied(true);
+    toast.success('Transaction hash copied to clipboard');
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
     <div className="space-y-6 sm:space-y-8 max-w-4xl mx-auto">
       <div className="flex items-center space-x-2">
         <button
           onClick={() => navigate('/trades')}
-          className="inline-flex items-center space-x-1 text-xs font-semibold text-slate-500 hover:text-slate-800"
+          className="inline-flex items-center space-x-1 text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Back to Trades</span>
@@ -90,60 +98,60 @@ export const TradeDetails = () => {
 
       <PageHeader
         title={`Settled Trade Audit: #${trade.id?.slice(0, 10)}`}
-        subtitle="Full algorithmic match explainability and zero-knowledge smart escrow audit receipt"
+        subtitle="Network routing explainability and automated settlement receipt"
         badge={<Badge variant="emerald" dot>SETTLED & CONFIRMED</Badge>}
       />
 
       {/* Overview Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="bg-slate-900 text-white">
+        <Card className="bg-slate-900 text-white border-slate-800">
           <span className="text-[11px] text-slate-400 font-bold uppercase tracking-wider block">
             Energy Traded
           </span>
           <div className="text-2xl font-extrabold text-white mt-1">
             {formatKwh(trade.quantity_kwh)}
           </div>
-          <span className="text-[11px] text-emerald-400 mt-1 block">
+          <span className="text-[11px] text-emerald-400 mt-1 block font-medium">
             Unit Price: {formatCurrency(trade.price_per_kwh)}/kWh
           </span>
         </Card>
 
-        <Card className="bg-slate-900 text-white">
+        <Card className="bg-slate-900 text-white border-slate-800">
           <span className="text-[11px] text-slate-400 font-bold uppercase tracking-wider block">
-            Network Wheeling Fee
+            Network Delivery Charge
           </span>
           <div className="text-2xl font-extrabold text-emerald-400 mt-1">
             +{formatCurrency(trade.network_cost_per_kwh, '$', 3)}
           </div>
           <span className="text-[11px] text-slate-400 mt-1 block">
-            Loss Factor Compensation
+            Line Loss & Congestion Surcharge
           </span>
         </Card>
 
-        <Card className="bg-slate-900 text-white">
+        <Card className="bg-slate-900 text-white border-slate-800">
           <span className="text-[11px] text-slate-400 font-bold uppercase tracking-wider block">
-            Total Settled Amount
+            Total Settled Value
           </span>
           <div className="text-2xl font-extrabold text-amber-400 mt-1">
             {formatCurrency(trade.total_amount)}
           </div>
           <span className="text-[11px] text-slate-400 mt-1 block">
-            Disbursed via Smart Escrow
+            Disbursed to Seller Prosumer
           </span>
         </Card>
       </div>
 
       {/* Algorithmic Explainability Card */}
       <Card
-        title="Double-Auction Algorithmic Rationale"
-        subtitle="Proof of social welfare maximization under physical line capacity constraints"
+        title="Double-Auction Clearing Rationale"
+        subtitle="Verification of economic welfare maximization subject to physical line constraints"
         icon={Zap}
       >
         <div className="space-y-4 text-xs text-slate-600">
           <p className="leading-relaxed">
             This trade was matched using SolarMesh’s continuous network-aware clearing engine.
             The engine prioritized the lowest marginal cost solar surplus while computing the shortest physical transmission route.
-            The net transmission fee ({formatCurrency(trade.network_cost_per_kwh)}/kWh) was dynamically calculated based on intermediate line losses and node congestion penalties.
+            The net transmission fee ({formatCurrency(trade.network_cost_per_kwh)}/kWh) was calculated based on intermediate line losses and node congestion penalties.
           </p>
 
           <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
@@ -172,12 +180,21 @@ export const TradeDetails = () => {
 
       {/* Blockchain Proof Card */}
       <Card
-        title="Immutable Smart Contract Escrow Record"
-        subtitle="Cryptographic verification on the SolarMesh Private EVM Rollup"
+        title="Microgrid Settlement Record"
+        subtitle="Verifiable transaction hash on the SolarMesh Settlement Layer"
         icon={ShieldCheck}
+        action={
+          <button
+            onClick={handleCopyHash}
+            className="inline-flex items-center space-x-1 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
+          >
+            {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+            <span>{copied ? 'Copied' : 'Copy Hash'}</span>
+          </button>
+        }
       >
         <div className="space-y-3 font-mono text-xs text-slate-600">
-          <div className="p-3.5 bg-slate-900 rounded-xl text-slate-300 space-y-2 break-all">
+          <div className="p-4 bg-slate-900 border border-slate-800 rounded-xl text-slate-300 space-y-2 break-all">
             <div>
               <span className="text-slate-500">Tx Hash: </span>
               <span className="text-indigo-400 font-bold">{txHash}</span>

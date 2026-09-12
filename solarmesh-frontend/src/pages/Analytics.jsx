@@ -23,6 +23,7 @@ import {
 import PageHeader from '../components/layout/PageHeader';
 import Card from '../components/common/Card';
 import StatCard from '../components/common/StatCard';
+import DemoSandboxDrawer from '../components/common/DemoSandboxDrawer';
 import { marketApi } from '../api/market';
 import { walletApi } from '../api/wallet';
 import { formatCurrency, formatKwh } from '../utils/formatters';
@@ -50,19 +51,20 @@ export const Analytics = () => {
   const [wallet, setWallet] = useState(null);
   const [trades, setTrades] = useState([]);
 
+  const fetchData = async () => {
+    try {
+      const [w, t] = await Promise.all([
+        walletApi.getWallet().catch(() => null),
+        marketApi.getMyTrades(100).catch(() => []),
+      ]);
+      if (w) setWallet(w);
+      if (t) setTrades(t);
+    } catch (err) {
+      console.warn('Analytics loading warning:', err);
+    }
+  };
+
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [w, t] = await Promise.all([
-          walletApi.getWallet().catch(() => null),
-          marketApi.getMyTrades(100).catch(() => []),
-        ]);
-        if (w) setWallet(w);
-        if (t) setTrades(t);
-      } catch (err) {
-        console.warn('Analytics loading warning:', err);
-      }
-    };
     fetchData();
   }, []);
 
@@ -73,16 +75,16 @@ export const Analytics = () => {
   return (
     <div className="space-y-6 sm:space-y-8">
       <PageHeader
-        title="Market Analytics & Sustainability Impact"
-        subtitle="Longitudinal performance metrics, price clearing indices, and avoided carbon offsets"
+        title="Energy Analytics & Green Impact"
+        subtitle="Track your solar production trends, utility bill savings, and carbon emission offsets"
       />
 
       {/* Aggregate KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          title="Total Cleared Energy"
+          title="Clean Energy Traded"
           value={formatKwh(totalVolume > 0 ? totalVolume : 195.5, 1)}
-          subtitle="P2P microgrid transactions"
+          subtitle="Community solar volume"
           icon={Zap}
           accent="emerald"
           trend="+28% this week"
@@ -90,7 +92,7 @@ export const Analytics = () => {
         />
 
         <StatCard
-          title="Gross Market Liquidity"
+          title="Total Value Traded"
           value={formatCurrency(totalValue > 0 ? totalValue : 32.84)}
           subtitle="Direct peer settlements"
           icon={DollarSign}
@@ -103,20 +105,20 @@ export const Analytics = () => {
           title="Avoided CO2 Emissions"
           value={co2Avoided > 0 ? co2Avoided : 160}
           unit="kg CO2"
-          subtitle="Offsetting coal/gas generation"
+          subtitle="Offsetting fossil grid power"
           icon={Leaf}
           accent="emerald"
-          trend="Certified Green Power"
+          trend="100% Green Energy"
           trendDirection="up"
         />
 
         <StatCard
-          title="Economic Surplus Saved"
+          title="Cost Savings vs Utility"
           value="37.4%"
-          subtitle={`vs traditional ${formatCurrency(UTILITY_GRID_TARIFF)}/kWh tariff`}
+          subtitle={`vs standard ${formatCurrency(UTILITY_GRID_TARIFF)}/kWh tariff`}
           icon={TrendingUp}
           accent="amber"
-          trend="Community Wealth Retention"
+          trend="Significant Savings"
           trendDirection="up"
         />
       </div>
@@ -125,8 +127,8 @@ export const Analytics = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Chart 1: Price Clearing vs Standard Utility Tariff */}
         <Card
-          title="Dynamic P2P Clearing Price vs Utility Tariff"
-          subtitle="Comparing double-auction clearing prices against fixed retail utility rates ($/kWh)"
+          title="Local Solar Price vs Grid Utility Rate"
+          subtitle="Comparing peer solar pricing against utility rates ($/kWh)"
           icon={TrendingUp}
         >
           <div className="h-64 sm:h-72 w-full pt-2">
@@ -137,29 +139,29 @@ export const Analytics = () => {
                 <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} unit=" $" />
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: '#1e293b',
+                    backgroundColor: '#0f172a',
                     borderRadius: '8px',
-                    color: '#fff',
+                    color: '#f8fafc',
                     fontSize: '11px',
-                    border: 'none',
+                    border: '1px solid #1e293b',
                   }}
                 />
                 <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />
                 <Line
                   type="monotone"
                   dataKey="clearingPrice"
-                  name="SolarMesh P2P Price ($/kWh)"
-                  stroke="#10b981"
-                  strokeWidth={3}
-                  dot={{ r: 4, fill: '#10b981' }}
+                  name="SolarMesh Community Price ($/kWh)"
+                  stroke="#059669"
+                  strokeWidth={2.5}
+                  dot={{ r: 3, fill: '#059669' }}
                 />
                 <Line
                   type="monotone"
                   dataKey="utilityTariff"
                   name="Standard Utility Tariff ($/kWh)"
-                  stroke="#ef4444"
+                  stroke="#94a3b8"
                   strokeWidth={2}
-                  strokeDasharray="5 5"
+                  strokeDasharray="4 4"
                   dot={false}
                 />
               </LineChart>
@@ -169,8 +171,8 @@ export const Analytics = () => {
 
         {/* Chart 2: Hourly Clean Energy Supply vs Local Demand */}
         <Card
-          title="Renewable Solar Generation vs Demand Profile"
-          subtitle="Nodal supply curves during midday peak sun vs evening battery discharge (kWh)"
+          title="Daily Solar Generation vs Energy Demand"
+          subtitle="Hourly solar supply profile vs household demand (kWh)"
           icon={BarChart3}
         >
           <div className="h-64 sm:h-72 w-full pt-2">
@@ -181,31 +183,34 @@ export const Analytics = () => {
                 <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} unit=" kWh" />
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: '#1e293b',
+                    backgroundColor: '#0f172a',
                     borderRadius: '8px',
-                    color: '#fff',
+                    color: '#f8fafc',
                     fontSize: '11px',
-                    border: 'none',
+                    border: '1px solid #1e293b',
                   }}
                 />
                 <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />
                 <Bar
                   dataKey="supply"
-                  name="Solar PV Supply (kWh)"
-                  fill="#f59e0b"
-                  radius={[4, 4, 0, 0]}
+                  name="Solar Generation (kWh)"
+                  fill="#059669"
+                  radius={[3, 3, 0, 0]}
                 />
                 <Bar
                   dataKey="demand"
-                  name="Consumer Demand (kWh)"
-                  fill="#3b82f6"
-                  radius={[4, 4, 0, 0]}
+                  name="Home Demand (kWh)"
+                  fill="#64748b"
+                  radius={[3, 3, 0, 0]}
                 />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </Card>
       </div>
+
+      {/* Demo Sandbox Drawer */}
+      <DemoSandboxDrawer onActionComplete={fetchData} />
     </div>
   );
 };

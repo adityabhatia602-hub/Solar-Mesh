@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import {
   Blocks,
   CheckCircle2,
-  ExternalLink,
   ShieldCheck,
-  FileCode,
+  Copy,
+  Check,
   Layers,
   Cpu,
   Info,
@@ -18,61 +18,71 @@ import {
   pseudoBlockHash,
 } from '../../utils/formatters';
 import { BLOCKCHAIN_CONFIG } from '../../utils/constants';
+import { useToast } from '../../hooks/useToast';
 import Badge from '../common/Badge';
 import Modal from '../common/Modal';
 
 export const BlockchainLedger = ({ trades = [] }) => {
   const [selectedTx, setSelectedTx] = useState(null);
+  const [copiedHash, setCopiedHash] = useState(null);
+  const toast = useToast();
+
+  const handleCopy = (hash) => {
+    navigator.clipboard.writeText(hash);
+    setCopiedHash(hash);
+    toast.success('Transaction hash copied to clipboard');
+    setTimeout(() => setCopiedHash(null), 2000);
+  };
 
   return (
     <div className="space-y-6">
-      {/* Informational Banner on Blockchain Settlement Architecture */}
-      <div className="p-5 rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white border border-indigo-900/50 shadow-sm space-y-3">
+      {/* Informational Banner on Ledger Settlement Architecture */}
+      <div className="p-5 rounded-2xl bg-slate-900 text-white border border-slate-800 shadow-2xs space-y-3">
         <div className="flex items-center space-x-2.5">
-          <div className="p-2 bg-indigo-500/20 text-indigo-400 rounded-xl">
+          <div className="p-2 bg-white/10 text-slate-300 rounded-xl">
             <Blocks className="w-5 h-5" />
           </div>
           <div>
             <h3 className="text-base font-bold text-white">
-              Decentralized Energy Settlement Layer (EVM / Private Rollup)
+              Automated Microgrid Settlement Ledger
             </h3>
-            <p className="text-xs text-indigo-200">
-              Zero-knowledge audited atomic escrow contracts guarantee instant prosumer payment on verified meter telemetry.
+            <p className="text-xs text-slate-400">
+              Double-entry cryptographic ledger guaranteeing instantaneous prosumer payment upon verified smart meter telemetry.
             </p>
           </div>
         </div>
 
-        {/* Technical Rollup Specs */}
+        {/* Technical Ledger Specs */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 text-xs">
           <div className="p-2.5 rounded-xl bg-white/5 border border-white/10">
-            <span className="text-[10px] text-indigo-300 block">Consensus Engine</span>
+            <span className="text-[10px] text-slate-400 block">Consensus Protocol</span>
             <span className="font-bold text-white text-xs">{BLOCKCHAIN_CONFIG.CONSENSUS}</span>
           </div>
           <div className="p-2.5 rounded-xl bg-white/5 border border-white/10">
-            <span className="text-[10px] text-indigo-300 block">Block Finality</span>
+            <span className="text-[10px] text-slate-400 block">Settlement Finality</span>
             <span className="font-bold text-white text-xs">Sub-second (&lt;{BLOCKCHAIN_CONFIG.BLOCK_TIME_SEC}s)</span>
           </div>
           <div className="p-2.5 rounded-xl bg-white/5 border border-white/10">
-            <span className="text-[10px] text-indigo-300 block">Smart Escrow Contract</span>
+            <span className="text-[10px] text-slate-400 block">Escrow Contract</span>
             <span className="font-mono font-bold text-emerald-400 text-xs">
               {formatHash(BLOCKCHAIN_CONFIG.SETTLEMENT_CONTRACT, 8, 6)}
             </span>
           </div>
           <div className="p-2.5 rounded-xl bg-white/5 border border-white/10">
-            <span className="text-[10px] text-indigo-300 block">Settlement Currency</span>
-            <span className="font-bold text-amber-300 text-xs">USD-Mesh Stablecoin (USDM)</span>
+            <span className="text-[10px] text-slate-400 block">Clearing Asset</span>
+            <span className="font-bold text-slate-200 text-xs">USD-Mesh Stablecoin (USDM)</span>
           </div>
         </div>
       </div>
 
       {/* Transactions Table */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden transition-colors duration-150">
         <div className="p-4 sm:px-6 border-b border-slate-100 flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <ShieldCheck className="w-4 h-4 text-emerald-600" />
-            <h4 className="text-sm font-bold text-slate-800">Immutable Settlement Transaction Stream</h4>
+            <h4 className="text-sm font-bold text-slate-800">Verified Settlement Transaction Log</h4>
           </div>
-          <Badge variant="emerald" dot>Real-time Block Finality</Badge>
+          <Badge variant="emerald" dot>Instant Finality</Badge>
         </div>
 
         {trades.length === 0 ? (
@@ -87,10 +97,10 @@ export const BlockchainLedger = ({ trades = [] }) => {
                   <th className="py-3 px-4">Tx Hash</th>
                   <th className="py-3 px-4">Block #</th>
                   <th className="py-3 px-4">Trade Ref</th>
-                  <th className="py-3 px-4">Volume</th>
-                  <th className="py-3 px-4">Settled Value</th>
+                  <th className="py-3 px-4">Energy Volume</th>
+                  <th className="py-3 px-4">Settled Amount</th>
                   <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4 text-right">Payload</th>
+                  <th className="py-3 px-4 text-right">Audit</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 font-mono">
@@ -99,9 +109,20 @@ export const BlockchainLedger = ({ trades = [] }) => {
                   const blockNum = 184920 + idx * 3;
 
                   return (
-                    <tr key={trade.id} className="hover:bg-slate-50/60 transition-colors">
-                      <td className="py-3 px-4 font-semibold text-indigo-600">
-                        {formatHash(txHash, 8, 6)}
+                    <tr key={`${trade.id || 'tx'}-${idx}`} className="hover:bg-slate-50/60 transition-colors">
+                      <td className="py-3 px-4 font-semibold text-indigo-600 flex items-center space-x-1.5">
+                        <span>{formatHash(txHash, 8, 6)}</span>
+                        <button
+                          onClick={() => handleCopy(txHash)}
+                          className="text-slate-400 hover:text-slate-700 p-0.5 cursor-pointer"
+                          title="Copy full hash"
+                        >
+                          {copiedHash === txHash ? (
+                            <Check className="w-3 h-3 text-emerald-600" />
+                          ) : (
+                            <Copy className="w-3 h-3" />
+                          )}
+                        </button>
                       </td>
                       <td className="py-3 px-4 text-slate-800 font-bold">
                         #{blockNum}
@@ -116,17 +137,17 @@ export const BlockchainLedger = ({ trades = [] }) => {
                         {formatCurrency(trade.total_amount)}
                       </td>
                       <td className="py-3 px-4 font-sans">
-                        <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                        <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-transparent">
                           <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                          <span>MOCK_CONFIRMED</span>
+                          <span>Confirmed</span>
                         </span>
                       </td>
                       <td className="py-3 px-4 text-right font-sans">
                         <button
                           onClick={() => setSelectedTx({ trade, txHash, blockNum })}
-                          className="px-2.5 py-1 text-xs rounded-lg text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-colors font-medium"
+                          className="px-2.5 py-1 text-xs rounded-lg text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-transparent transition-colors font-medium cursor-pointer"
                         >
-                          View Proof
+                          View Receipt
                         </button>
                       </td>
                     </tr>
@@ -143,15 +164,23 @@ export const BlockchainLedger = ({ trades = [] }) => {
         <Modal
           isOpen={!!selectedTx}
           onClose={() => setSelectedTx(null)}
-          title="Smart Contract Transaction Receipt"
+          title="Settlement Transaction Receipt"
           subtitle={`Verified on SolarMesh Private Rollup (Chain ID ${BLOCKCHAIN_CONFIG.CHAIN_ID})`}
           maxWidth="max-w-xl"
         >
           <div className="space-y-4 font-mono text-xs">
-            <div className="p-3 bg-slate-900 rounded-xl text-slate-300 space-y-2 overflow-x-auto">
+            <div className="p-3.5 bg-slate-900 rounded-xl text-slate-300 space-y-2 overflow-x-auto border border-transparent">
               <div>
                 <span className="text-slate-500">Transaction Hash:</span>
-                <div className="text-indigo-400 font-bold break-all">{selectedTx.txHash}</div>
+                <div className="text-indigo-400 font-bold break-all flex items-center justify-between">
+                  <span>{selectedTx.txHash}</span>
+                  <button
+                    onClick={() => handleCopy(selectedTx.txHash)}
+                    className="text-slate-400 hover:text-white ml-2 shrink-0 cursor-pointer"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
               <div>
                 <span className="text-slate-500">Block Number:</span>
@@ -162,20 +191,20 @@ export const BlockchainLedger = ({ trades = [] }) => {
                 <div className="text-emerald-400 break-all">{BLOCKCHAIN_CONFIG.SETTLEMENT_CONTRACT}</div>
               </div>
               <div>
-                <span className="text-slate-500">Gas Used:</span>
-                <div className="text-white">42,190 units (Zero-fee microgrid subsidy)</div>
+                <span className="text-slate-500">Gas & Wheeling Subsidy:</span>
+                <div className="text-white">Zero-fee microgrid subsidy applied</div>
               </div>
             </div>
 
             <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5 font-sans">
-              <span className="text-xs font-bold text-slate-800 block">Smart Contract Event Logs:</span>
+              <span className="text-xs font-bold text-slate-800 block">Settlement Event Signatures:</span>
               <div className="text-xs text-slate-600 font-mono space-y-1">
                 <div className="p-2 bg-white rounded border border-slate-200">
                   <span className="text-emerald-600 font-bold">event EnergyDelivered(</span>
                   <div>&nbsp;&nbsp;seller: {selectedTx.trade.seller_id?.slice(0, 10)}...,</div>
                   <div>&nbsp;&nbsp;buyer: {selectedTx.trade.buyer_id?.slice(0, 10)}...,</div>
                   <div>&nbsp;&nbsp;kwh: {selectedTx.trade.quantity_kwh},</div>
-                  <div>&nbsp;&nbsp;grid_loss_fee: {selectedTx.trade.network_cost_per_kwh}</div>
+                  <div>&nbsp;&nbsp;wheeling_fee: {selectedTx.trade.network_cost_per_kwh}</div>
                   <span className="text-emerald-600 font-bold">)</span>
                 </div>
 
