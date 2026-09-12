@@ -30,7 +30,9 @@ def _create_token(subject: str, expires_delta: timedelta, token_type: str) -> st
         "exp": datetime.now(timezone.utc) + expires_delta,
         "iat": datetime.now(timezone.utc),
     }
-    return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+    alg = (settings.ALGORITHM or "HS256").strip()
+    key = (settings.SECRET_KEY or "dev-secret-change-me").strip()
+    return jwt.encode(payload, key, algorithm=alg)
 
 
 def create_access_token(user_id: str) -> str:
@@ -43,6 +45,8 @@ def create_refresh_token(user_id: str) -> str:
 
 def decode_token(token: str) -> dict[str, Any] | None:
     try:
-        return jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        alg = (settings.ALGORITHM or "HS256").strip()
+        key = (settings.SECRET_KEY or "dev-secret-change-me").strip()
+        return jwt.decode(token, key, algorithms=[alg])
     except JWTError:
         return None
