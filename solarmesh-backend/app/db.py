@@ -55,6 +55,11 @@ _COLUMN_MIGRATIONS: dict[str, list[tuple[str, str]]] = {
 def run_lightweight_migrations() -> None:
     """Create tables then add any missing columns (safe to call repeatedly)."""
     Base.metadata.create_all(bind=engine)
+    # The manual column alteration below is only needed for SQLite, which lacks
+    # full DDL migration support in create_all. On PostgreSQL, models define all columns.
+    if not settings.database_url.startswith("sqlite"):
+        return
+
     inspector = inspect(engine)
     with engine.begin() as conn:
         for table, columns in _COLUMN_MIGRATIONS.items():
