@@ -42,6 +42,12 @@ class Settings(BaseSettings):
     GRID_LOSS_FACTOR: float = 0.02
     CONGESTION_PENALTY: float = 0.15
 
+    # Observability & Monitoring
+    SLOW_REQUEST_THRESHOLD_MS: float = 500.0
+    ALERT_WEBHOOK_URL: str | None = None
+    ERROR_BURST_THRESHOLD: int = 3
+    ERROR_BURST_WINDOW_SECONDS: int = 60
+
     @property
     def database_url(self) -> str:
         if self.DATABASE_URL:

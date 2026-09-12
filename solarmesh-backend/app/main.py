@@ -12,12 +12,15 @@ from sqlalchemy import text
 
 from app.config import settings
 from app.db import SessionLocal, run_lightweight_migrations
+from app.middleware import RequestLoggingMiddleware
 from app.models import Base, SimulationState
+from app.monitoring import alert_manager, metrics_collector
 from app.routers import (
     analytics,
     auth,
     grid,
     market,
+    monitoring,
     simulation,
     telemetry,
     trades,
@@ -117,6 +120,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(RequestLoggingMiddleware)
 
 app.include_router(auth.router)
 app.include_router(wallets.router)
@@ -126,14 +130,34 @@ app.include_router(telemetry.router)
 app.include_router(trades.router)
 app.include_router(simulation.router)
 app.include_router(analytics.router)
+app.include_router(monitoring.router)
 
 
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception):
-    logger.exception("Unhandled error on %s %s: %s", request.method, request.url.path, exc)
+    request_id = getattr(request.state, "request_id", "req-unknown")
+    forwarded = request.headers.get("x-forwarded-for")
+    client_ip = forwarded.split(",")[0].strip() if forwarded else (request.client.host if request.client else "127.0.0.1")
+
+    err_entry = metrics_collector.record_error(
+        request_id=request_id,
+        method=request.method,
+        path=request.url.path,
+        status_code=500,
+        exc=exc,
+        client_ip=client_ip,
+    )
+    alert_manager.check_error_burst(err_entry)
+
+    logger.exception("[%s] Unhandled exception on %s %s: %s", request_id, request.method, request.url.path, exc)
     return JSONResponse(
         status_code=500,
-        content={"detail": f"Internal Server Error: {str(exc)}"},
+        headers={"X-Request-ID": request_id},
+        content={
+            "detail": f"Internal Server Error: {str(exc)}",
+            "request_id": request_id,
+            "error_type": type(exc).__name__,
+        },
     )
 
 
@@ -143,8 +167,14 @@ def health():
     try:
         with SessionLocal() as session:
             session.connection().execute(text("SELECT 1"))
-    except Exception:
+    except Exception as e:
         db_ok = False
+        alert_manager.trigger_alert(
+            alert_type="DATABASE_DOWN",
+            severity="CRITICAL",
+            title="Database Health Check Failed",
+            message=f"Health check failed to connect to database: {str(e)}",
+        )
 
     sim_running = False
     try:
