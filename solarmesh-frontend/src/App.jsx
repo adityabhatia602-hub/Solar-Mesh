@@ -19,6 +19,7 @@ import Blockchain from './pages/Blockchain';
 import Profile from './pages/Profile';
 import NotFound from './pages/NotFound';
 import LoadingSpinner from './components/common/LoadingSpinner';
+import ErrorBoundary from './components/common/ErrorBoundary';
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
@@ -58,56 +59,58 @@ const PublicOnlyRoute = ({ children }) => {
 
 export function App() {
   return (
-    <AuthProvider>
-      <MarketProvider>
-        <ToastProvider>
-          <BrowserRouter>
-            <Routes>
-              {/* Public Auth Routes */}
-              <Route
-                path="/login"
-                element={
-                  <PublicOnlyRoute>
-                    <Login />
-                  </PublicOnlyRoute>
-                }
-              />
-              <Route
-                path="/register"
-                element={
-                  <PublicOnlyRoute>
-                    <Register />
-                  </PublicOnlyRoute>
-                }
-              />
+    <ErrorBoundary>
+      <AuthProvider>
+        <MarketProvider>
+          <ToastProvider>
+            <BrowserRouter>
+              <Routes>
+                {/* Public Auth Routes */}
+                <Route
+                  path="/login"
+                  element={
+                    <PublicOnlyRoute>
+                      <Login />
+                    </PublicOnlyRoute>
+                  }
+                />
+                <Route
+                  path="/register"
+                  element={
+                    <PublicOnlyRoute>
+                      <Register />
+                    </PublicOnlyRoute>
+                  }
+                />
 
-              {/* Protected Dashboard Shell */}
-              <Route
-                path="/"
-                element={
-                  <ProtectedRoute>
-                    <AppLayout />
-                  </ProtectedRoute>
-                }
-              >
-                <Route index element={<Dashboard />} />
-                <Route path="marketplace" element={<Marketplace />} />
-                <Route path="telemetry" element={<Telemetry />} />
-                <Route path="trades" element={<Trades />} />
-                <Route path="trades/:id" element={<TradeDetails />} />
-                <Route path="network" element={<Network />} />
-                <Route path="analytics" element={<Analytics />} />
-                <Route path="blockchain" element={<Blockchain />} />
-                <Route path="profile" element={<Profile />} />
-              </Route>
+                {/* Protected Dashboard Shell */}
+                <Route
+                  path="/"
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout />
+                    </ProtectedRoute>
+                  }
+                >
+                  <Route index element={<Dashboard />} />
+                  <Route path="marketplace" element={<Marketplace />} />
+                  <Route path="telemetry" element={<Telemetry />} />
+                  <Route path="trades" element={<Trades />} />
+                  <Route path="trades/:id" element={<TradeDetails />} />
+                  <Route path="network" element={<Network />} />
+                  <Route path="analytics" element={<Analytics />} />
+                  <Route path="blockchain" element={<Blockchain />} />
+                  <Route path="profile" element={<Profile />} />
+                </Route>
 
-              {/* 404 Catch-all */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </ToastProvider>
-      </MarketProvider>
-    </AuthProvider>
+                {/* 404 Catch-all */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </ToastProvider>
+        </MarketProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
 

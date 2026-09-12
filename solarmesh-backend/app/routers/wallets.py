@@ -1,11 +1,13 @@
 """Wallet and ledger endpoints."""
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.dependencies import get_current_user, require_admin
+from app.idempotency import idempotency_manager
 from app.models import LedgerEntry, LedgerEntryType, User
 from app.rate_limiter import RateLimiter
 from app.schemas import DepositRequest, LedgerEntryOut, TransferRequest, WalletOut
@@ -31,10 +33,24 @@ def transfer_funds(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
     _rate: None = Depends(transfer_limiter),
+    idempotency_key: str | None = Header(default=None, alias="X-Idempotency-Key"),
 ):
     """Transfer funds directly from current user's wallet to another peer by email."""
+    if idempotency_key:
+        is_hit, cached_response, cached_status = idempotency_manager.check_or_lock(
+            user.id, "/api/wallet/transfer", idempotency_key, payload.model_dump()
+        )
+        if is_hit:
+            return JSONResponse(
+                content=cached_response,
+                status_code=cached_status or 200,
+                headers={"X-Idempotent-Replay": "true"},
+            )
+
     target_email = payload.recipient_email.lower().strip()
     if target_email == user.email.lower().strip():
+        if idempotency_key:
+            idempotency_manager.abort(user.id, "/api/wallet/transfer", idempotency_key)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Cannot transfer funds to your own account",
@@ -42,6 +58,8 @@ def transfer_funds(
 
     recipient = db.query(User).filter(User.email == target_email).first()
     if recipient is None:
+        if idempotency_key:
+            idempotency_manager.abort(user.id, "/api/wallet/transfer", idempotency_key)
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Recipient user '{payload.recipient_email}' not found",
@@ -52,6 +70,8 @@ def transfer_funds(
 
     available = round(float(sender_wallet.balance) - float(sender_wallet.reserved), 6)
     if available < payload.amount:
+        if idempotency_key:
+            idempotency_manager.abort(user.id, "/api/wallet/transfer", idempotency_key)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Insufficient funds: available ₹{available:.2f} is less than ₹{payload.amount:.2f}",
@@ -79,9 +99,18 @@ def transfer_funds(
         )
         db.commit()
         db.refresh(sender_wallet)
-        return sender_wallet
+        out = WalletOut.model_validate(sender_wallet)
+        if idempotency_key:
+            idempotency_manager.complete(
+                user.id, "/api/wallet/transfer", idempotency_key, out.model_dump(), 200
+            )
+        return out
     except Exception as e:
         db.rollback()
+        if idempotency_key:
+            idempotency_manager.abort(user.id, "/api/wallet/transfer", idempotency_key)
+        if isinstance(e, HTTPException):
+            raise
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Transfer could not be processed: {str(e)}",
@@ -129,9 +158,32 @@ def deposit_self(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
     _rate: None = Depends(deposit_self_limiter),
+    idempotency_key: str | None = Header(default=None, alias="X-Idempotency-Key"),
 ):
     """Hackathon faucet: any user can credit their own wallet for testing."""
-    return _apply_adjustment(payload, user, db)
+    if idempotency_key:
+        is_hit, cached_response, cached_status = idempotency_manager.check_or_lock(
+            user.id, "/api/wallet/deposit/self", idempotency_key, payload.model_dump()
+        )
+        if is_hit:
+            return JSONResponse(
+                content=cached_response,
+                status_code=cached_status or 200,
+                headers={"X-Idempotent-Replay": "true"},
+            )
+
+    try:
+        wallet = _apply_adjustment(payload, user, db)
+        out = WalletOut.model_validate(wallet)
+        if idempotency_key:
+            idempotency_manager.complete(
+                user.id, "/api/wallet/deposit/self", idempotency_key, out.model_dump(), 200
+            )
+        return out
+    except Exception:
+        if idempotency_key:
+            idempotency_manager.abort(user.id, "/api/wallet/deposit/self", idempotency_key)
+        raise
 
 
 def _apply_adjustment(payload: DepositRequest, user: User, db: Session) -> WalletOut:

@@ -1,11 +1,13 @@
 """Market endpoints: orders, order book, trades, matching."""
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.dependencies import get_current_user
+from app.idempotency import idempotency_manager
 from app.models import Order, OrderStatus, Trade, User
 from app.schemas import MatchResult, OrderBookOut, OrderCreate, OrderOut, TradeOut
 from app.services import market_service
@@ -14,7 +16,23 @@ router = APIRouter(prefix="/api/market", tags=["market"])
 
 
 @router.post("/orders", response_model=OrderOut, status_code=status.HTTP_201_CREATED)
-def place_order(payload: OrderCreate, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def place_order(
+    payload: OrderCreate,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    idempotency_key: str | None = Header(default=None, alias="X-Idempotency-Key"),
+):
+    if idempotency_key:
+        is_hit, cached_response, cached_status = idempotency_manager.check_or_lock(
+            user.id, "/api/market/orders", idempotency_key, payload.model_dump()
+        )
+        if is_hit:
+            return JSONResponse(
+                content=cached_response,
+                status_code=cached_status or 201,
+                headers={"X-Idempotent-Replay": "true"},
+            )
+
     try:
         order = market_service.place_order(db, user, payload)
         try:
@@ -22,9 +40,18 @@ def place_order(payload: OrderCreate, user: User = Depends(get_current_user), db
             db.refresh(order)
         except Exception:
             pass
-        return order
-    except market_service.MarketError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        out = OrderOut.model_validate(order)
+        if idempotency_key:
+            idempotency_manager.complete(
+                user.id, "/api/market/orders", idempotency_key, out.model_dump(mode="json"), 201
+            )
+        return out
+    except Exception as e:
+        if idempotency_key:
+            idempotency_manager.abort(user.id, "/api/market/orders", idempotency_key)
+        if isinstance(e, market_service.MarketError):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise
 
 
 @router.get("/orders", response_model=list[OrderOut])

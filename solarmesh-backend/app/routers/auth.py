@@ -106,12 +106,25 @@ def google_auth(payload: GoogleAuthRequest, db: Session = Depends(get_db)):
     from google.oauth2 import id_token
     from google.auth.transport import requests as google_requests
 
+    import requests
+    from requests.adapters import HTTPAdapter
+
+    session = requests.Session()
+    session.mount("https://", HTTPAdapter(max_retries=1))
+
     try:
         client_id = settings.GOOGLE_CLIENT_ID if settings.GOOGLE_CLIENT_ID else None
+        # Enforce strict 5.0-second timeout on external authentication request
+        request_transport = google_requests.Request(session=session)
         id_info = id_token.verify_oauth2_token(
             payload.token,
-            google_requests.Request(),
+            request_transport,
             audience=client_id,
+        )
+    except (requests.exceptions.Timeout, TimeoutError):
+        raise HTTPException(
+            status_code=status.HTTP_504_GATEWAY_TIMEOUT,
+            detail="Authentication identity provider timed out after 5.0s. Please retry.",
         )
     except Exception as exc:
         raise HTTPException(

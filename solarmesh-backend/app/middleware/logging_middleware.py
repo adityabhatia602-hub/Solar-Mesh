@@ -89,29 +89,51 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
         except Exception as exc:
             duration_ms = (time.perf_counter() - start_time) * 1000.0
 
+            from sqlalchemy.exc import DBAPIError, InterfaceError, OperationalError, SQLAlchemyError
+            is_db_error = isinstance(exc, (OperationalError, InterfaceError, DBAPIError)) or (
+                "database" in type(exc).__name__.lower()
+                or "operationalerror" in type(exc).__name__.lower()
+                or "connection refused" in str(exc).lower()
+                or "connection to server" in str(exc).lower()
+                or ("pool" in str(exc).lower() and "exhaust" in str(exc).lower())
+            )
+
+            status_code = 503 if is_db_error else 500
+
             # Capture error details and notify alert manager
             err_entry = metrics_collector.record_error(
                 request_id=request_id,
                 method=request.method,
                 path=request.url.path,
-                status_code=500,
+                status_code=status_code,
                 exc=exc,
                 client_ip=client_ip,
             )
-            alert_manager.check_error_burst(err_entry)
+
+            if is_db_error:
+                alert_manager.trigger_alert(
+                    alert_type="DATABASE_OUTAGE",
+                    severity="CRITICAL",
+                    title="Database Connection Dropped",
+                    message=f"Database query failed on {request.method} {request.url.path}: {str(exc)[:200]}",
+                    details={"request_id": request_id, "path": request.url.path, "error": str(exc)},
+                )
+            else:
+                alert_manager.check_error_burst(err_entry)
 
             metrics_collector.record_request(
                 method=request.method,
                 path=request.url.path,
-                status_code=500,
+                status_code=status_code,
                 duration_ms=duration_ms,
                 client_ip=client_ip,
                 request_id=request_id,
             )
 
             logger.exception(
-                "[%s] UNHANDLED ERROR on %s %s in %.1fms: %s (at %s:%d in %s)",
+                "[%s] ERROR (%d) on %s %s in %.1fms: %s (at %s:%d in %s)",
                 request_id,
+                status_code,
                 request.method,
                 request.url.path,
                 duration_ms,
@@ -122,6 +144,24 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             )
 
             from starlette.responses import JSONResponse
+            if is_db_error:
+                return JSONResponse(
+                    status_code=503,
+                    headers={
+                        "X-Request-ID": request_id,
+                        "X-Response-Time": f"{duration_ms:.2f}ms",
+                        "Retry-After": "5",
+                        "X-Error-Code": "DATABASE_UNAVAILABLE",
+                    },
+                    content={
+                        "detail": "Database service is temporarily unavailable. Connection lost or reconnecting. Please retry in a few moments.",
+                        "error_code": "DATABASE_UNAVAILABLE",
+                        "retry_after_seconds": 5,
+                        "request_id": request_id,
+                        "error_type": type(exc).__name__,
+                    },
+                )
+
             return JSONResponse(
                 status_code=500,
                 headers={
