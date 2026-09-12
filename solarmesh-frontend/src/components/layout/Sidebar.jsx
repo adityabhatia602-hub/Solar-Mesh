@@ -13,6 +13,7 @@ import {
   Radio,
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
+import logoImg from '../../assets/logo.png';
 
 const NAV_ITEMS = [
   {
@@ -85,8 +86,13 @@ export const Sidebar = ({ isOpen, onClose }) => {
         }`}
       >
         {/* Sidebar Header (Mobile close button) */}
-        <div className="h-16 flex items-center justify-between px-6 border-b border-slate-100 lg:hidden">
-          <span className="font-bold text-slate-800 text-sm">SolarMesh Navigation</span>
+        <div className="h-16 flex items-center justify-between px-4 border-b border-slate-100 lg:hidden">
+          <div className="flex items-center space-x-2">
+            <img src={logoImg} alt="SolarMesh" className="w-7 h-7 rounded-lg object-cover shadow-2xs" />
+            <span className="font-extrabold text-slate-900 text-sm tracking-tight">
+              Solar<span className="text-emerald-700">Mesh</span>
+            </span>
+          </div>
           <button
             onClick={onClose}
             className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 cursor-pointer"

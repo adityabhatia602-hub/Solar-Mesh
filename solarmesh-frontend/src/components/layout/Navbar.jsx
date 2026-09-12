@@ -17,6 +17,7 @@ import { formatCurrency } from '../../utils/formatters';
 import { walletApi } from '../../api/wallet';
 import Button from '../common/Button';
 import Modal from '../common/Modal';
+import logoImg from '../../assets/logo.png';
 
 export const Navbar = ({ onToggleSidebar, walletBalance, onWalletRefresh }) => {
   const { user, logout, isProsumer } = useAuth();
@@ -61,10 +62,12 @@ export const Navbar = ({ onToggleSidebar, walletBalance, onWalletRefresh }) => {
             <Menu className="w-5 h-5" />
           </button>
 
-          <Link to="/" className="flex items-center space-x-2 group">
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-900 flex items-center justify-center text-white shadow-2xs shrink-0">
-              <Sun className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-white" />
-            </div>
+          <Link to="/" className="flex items-center space-x-2.5 group">
+            <img
+              src={logoImg}
+              alt="SolarMesh"
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl object-cover shadow-xs shrink-0 group-hover:scale-105 transition-transform duration-150"
+            />
             <div>
               <div className="flex items-center space-x-1.5">
                 <span className="font-extrabold text-slate-900 tracking-tight text-sm sm:text-lg">

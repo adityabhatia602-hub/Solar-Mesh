@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Sun, Zap, Lock, Mail, User as UserIcon, ArrowRight } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import Button from '../components/common/Button';
+import logoImg from '../assets/logo.png';
 
 export const Register = () => {
   const [email, setEmail] = useState('');
@@ -39,8 +40,8 @@ export const Register = () => {
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-8 px-4 sm:py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
         {/* Logo */}
-        <div className="mx-auto w-12 h-12 rounded-2xl bg-slate-900 flex items-center justify-center text-white shadow-2xs mb-3">
-          <Zap className="w-6 h-6" />
+        <div className="mx-auto w-16 h-16 rounded-2xl overflow-hidden shadow-md mb-3 border border-slate-200/50">
+          <img src={logoImg} alt="SolarMesh" className="w-full h-full object-cover" />
         </div>
         <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
           Join Solar<span className="text-emerald-700">Mesh</span>
