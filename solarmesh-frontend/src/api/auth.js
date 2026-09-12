@@ -10,6 +10,13 @@ export const authApi = {
     return response.data; // { access_token, refresh_token, token_type }
   },
 
+  loginGoogle: async (credential) => {
+    const response = await apiClient.post('/api/auth/google', {
+      token: credential,
+    });
+    return response.data; // { access_token, refresh_token, token, user }
+  },
+
   register: async ({ email, password, full_name, role }) => {
     const response = await apiClient.post('/api/auth/register', {
       email,

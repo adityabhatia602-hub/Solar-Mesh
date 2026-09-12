@@ -9,7 +9,7 @@ from app.config import settings
 from app.db import get_db
 from app.dependencies import get_current_user
 from app.models import User, UserRole
-from app.schemas import RefreshRequest, TokenPair, UserCreate, UserLogin, UserOut
+from app.schemas import GoogleAuthRequest, RefreshRequest, TokenPair, UserCreate, UserLogin, UserOut
 from app.security import (
     create_access_token,
     create_refresh_token,
@@ -23,9 +23,14 @@ router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 
 def _token_pair(user: User) -> TokenPair:
+    access_token = create_access_token(user.id)
+    refresh_token = create_refresh_token(user.id)
     return TokenPair(
-        access_token=create_access_token(user.id),
-        refresh_token=create_refresh_token(user.id),
+        access_token=access_token,
+        refresh_token=refresh_token,
+        token_type="bearer",
+        token=access_token,
+        user=UserOut.model_validate(user),
     )
 
 
@@ -83,3 +88,55 @@ def refresh(payload: RefreshRequest, db: Session = Depends(get_db)):
 @router.get("/me", response_model=UserOut)
 def me(user: User = Depends(get_current_user)):
     return user
+
+
+@router.post("/google", response_model=TokenPair)
+def google_auth(payload: GoogleAuthRequest, db: Session = Depends(get_db)):
+    """Verify Google OAuth2 ID token and authenticate or register user."""
+    import secrets
+    from google.oauth2 import id_token
+    from google.auth.transport import requests as google_requests
+
+    try:
+        client_id = settings.GOOGLE_CLIENT_ID if settings.GOOGLE_CLIENT_ID else None
+        id_info = id_token.verify_oauth2_token(
+            payload.token,
+            google_requests.Request(),
+            audience=client_id,
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Invalid Google token: {exc}",
+        )
+
+    email = id_info.get("email")
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Google token payload does not contain an email",
+        )
+
+    name = id_info.get("name") or email.split("@")[0]
+
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        random_pw = secrets.token_urlsafe(32)
+        user = User(
+            email=email,
+            full_name=name,
+            hashed_password=hash_password(random_pw),
+            role=UserRole(payload.role),
+        )
+        db.add(user)
+        db.flush()
+        get_or_create_wallet(db, user.id)
+        db.commit()
+        db.refresh(user)
+    elif not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account disabled",
+        )
+
+    return _token_pair(user)

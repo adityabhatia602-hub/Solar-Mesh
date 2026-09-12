@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Sun, Lock, Mail, ArrowRight, ShieldCheck, Zap } from 'lucide-react';
+import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../hooks/useAuth';
 import Button from '../components/common/Button';
 
@@ -10,7 +11,7 @@ export const Login = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const { login } = useAuth();
+  const { login, loginGoogle } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -26,6 +27,27 @@ export const Login = () => {
     } else {
       setError(res.error);
     }
+  };
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await loginGoogle(credentialResponse.credential);
+      if (res.success) {
+        navigate('/');
+      } else {
+        setError(res.error || 'Google login failed');
+      }
+    } catch (err) {
+      setError(err.message || 'Google login failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleError = () => {
+    setError('Google login failed or was cancelled');
   };
 
   // Quick fill helper for hackathon judges & testers
@@ -61,6 +83,26 @@ export const Login = () => {
               {error}
             </div>
           )}
+
+          {/* Google OAuth Login */}
+          <div className="mb-5 flex flex-col items-center justify-center">
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={handleGoogleError}
+              text="continue_with"
+              theme="outline"
+              size="large"
+              shape="rectangular"
+              width="320"
+            />
+          </div>
+
+          <div className="relative mb-5 flex items-center justify-center">
+            <div className="w-full border-t border-slate-200"></div>
+            <span className="bg-white px-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider absolute">
+              or sign in with email
+            </span>
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>

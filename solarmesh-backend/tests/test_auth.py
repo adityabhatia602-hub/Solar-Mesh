@@ -54,3 +54,32 @@ def test_refresh_rejects_access_token(client):
     access = r.json()["access_token"]
     r2 = client.post("/api/auth/refresh", json={"refresh_token": access})
     assert r2.status_code == 401
+
+
+def test_google_auth_mocked(client, monkeypatch):
+    from google.oauth2 import id_token
+
+    def mock_verify_oauth2_token(token, request, audience=None):
+        if token == "valid-mock-google-token":
+            return {
+                "sub": "google-12345",
+                "email": "googleuser@test.io",
+                "name": "Google User",
+                "picture": "https://example.com/pic.jpg",
+            }
+        raise ValueError("Invalid token")
+
+    monkeypatch.setattr(id_token, "verify_oauth2_token", mock_verify_oauth2_token)
+
+    # Test valid token creates new user & returns tokens
+    res = client.post("/api/auth/google", json={"token": "valid-mock-google-token", "role": "consumer"})
+    assert res.status_code == 200
+    data = res.json()
+    assert "access_token" in data
+    assert "refresh_token" in data
+    assert "user" in data
+    assert data["user"]["email"] == "googleuser@test.io"
+
+    # Test invalid token returns 401
+    bad_res = client.post("/api/auth/google", json={"token": "bad-token"})
+    assert bad_res.status_code == 401

@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 120
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+    GOOGLE_CLIENT_ID: str = ""
 
     # Database
     # Defaults to SQLite for zero-dependency local dev (no Docker required).

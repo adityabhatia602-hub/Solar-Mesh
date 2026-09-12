@@ -90,6 +90,24 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const loginGoogle = async (credential) => {
+    setError(null);
+    try {
+      const data = await authApi.loginGoogle(credential);
+      setTokens(data.access_token, data.refresh_token);
+      setToken(data.access_token);
+
+      const profile = data.user || (await authApi.getMe());
+      setUser(profile);
+      setStoredUser(profile);
+      return { success: true, user: profile };
+    } catch (err) {
+      const msg = err.response?.data?.detail || err.message || 'Google login failed';
+      setError(msg);
+      return { success: false, error: msg };
+    }
+  };
+
   const logout = () => {
     clearSession();
     setUser(null);
@@ -108,6 +126,7 @@ export const AuthProvider = ({ children }) => {
     loading,
     error,
     login,
+    loginGoogle,
     register,
     logout,
     refreshUser,
