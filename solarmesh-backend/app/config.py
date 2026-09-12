@@ -1,5 +1,6 @@
 """Application configuration loaded from environment / .env."""
 from functools import lru_cache
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -13,9 +14,14 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     GOOGLE_CLIENT_ID: str = ""
 
+    @field_validator("ALGORITHM", "SECRET_KEY", "DATABASE_URL", mode="before")
+    @classmethod
+    def sanitize_strings(cls, v: str | None) -> str | None:
+        if isinstance(v, str):
+            return v.strip()
+        return v
+
     # Database
-    # Defaults to SQLite for zero-dependency local dev (no Docker required).
-    # Can be set to PostgreSQL (e.g. Neon, Supabase, Render) via DATABASE_URL or POSTGRES_HOST.
     DATABASE_URL: str | None = None
     POSTGRES_HOST: str | None = None
     POSTGRES_PORT: int = 5432
