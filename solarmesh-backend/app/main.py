@@ -24,60 +24,70 @@ from app.routers import (
 )
 from app.services import market_service, simulation_service
 
+import os
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("solarmesh")
 
 
 @contextlib.asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Initialize/migrate DB tables (MVP: lightweight ALTERs for SQLite).
-    run_lightweight_migrations()
+    # Initialize/migrate DB tables (safely catch errors on serverless cold starts).
+    try:
+        run_lightweight_migrations()
+    except Exception as exc:
+        logger.warning("Database migrations skipped or failed on startup: %s", exc)
 
     # Ensure the singleton simulation-state row exists.
-    db = SessionLocal()
     try:
-        if db.get(SimulationState, 1) is None:
-            db.add(SimulationState(id=1, is_running=False, interval_seconds=settings.SIMULATION_INTERVAL_SECONDS))
-            db.commit()
-        sim_running = db.get(SimulationState, 1).is_running
-    finally:
-        db.close()
+        with SessionLocal() as db:
+            if db.get(SimulationState, 1) is None:
+                db.add(SimulationState(id=1, is_running=False, interval_seconds=settings.SIMULATION_INTERVAL_SECONDS))
+                db.commit()
+    except Exception as exc:
+        logger.warning("SimulationState initialization check skipped: %s", exc)
 
     # Attach running event loop to telemetry event_bus
-    telemetry.event_bus.set_loop(asyncio.get_running_loop())
+    with contextlib.suppress(Exception):
+        telemetry.event_bus.set_loop(asyncio.get_running_loop())
 
-    # Background matching engine task (runs even when the demo sim is off).
+    # Background matching engine task - only run on persistent servers, not serverless functions
+    is_serverless = bool(os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"))
+    worker_task = None
     stop_event = asyncio.Event()
 
-    async def matching_worker():
-        while not stop_event.is_set():
-            try:
-                await asyncio.sleep(settings.MATCH_INTERVAL_SECONDS)
-                loop = asyncio.get_running_loop()
+    if not is_serverless:
+        async def matching_worker():
+            while not stop_event.is_set():
+                try:
+                    await asyncio.sleep(settings.MATCH_INTERVAL_SECONDS)
+                    loop = asyncio.get_running_loop()
 
-                def _do_match():
-                    session = SessionLocal()
-                    try:
-                        market_service.run_matching(session)
-                    except Exception:
-                        session.rollback()
-                    finally:
-                        session.close()
+                    def _do_match():
+                        session = SessionLocal()
+                        try:
+                            market_service.run_matching(session)
+                        except Exception:
+                            session.rollback()
+                        finally:
+                            session.close()
 
-                await loop.run_in_executor(None, _do_match)
-            except asyncio.CancelledError:
-                break
-            except Exception:
-                logger.exception("Matching worker iteration failed")
+                    await loop.run_in_executor(None, _do_match)
+                except asyncio.CancelledError:
+                    break
+                except Exception:
+                    logger.exception("Matching worker iteration failed")
 
-    worker_task = asyncio.create_task(matching_worker())
+        worker_task = asyncio.create_task(matching_worker())
+
     try:
         yield
     finally:
-        stop_event.set()
-        worker_task.cancel()
-        with contextlib.suppress(asyncio.CancelledError):
-            await worker_task
+        if worker_task:
+            stop_event.set()
+            worker_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await worker_task
 
 
 app = FastAPI(
@@ -101,7 +111,7 @@ app.add_middleware(
         "http://127.0.0.1:5173",
         "http://127.0.0.1:4173",
     ],
-    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$|^https://.*\.vercel\.app$",
+    allow_origin_regex=r".*",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

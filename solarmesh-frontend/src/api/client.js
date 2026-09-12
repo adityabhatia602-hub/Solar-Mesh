@@ -109,6 +109,15 @@ export const extractErrorMessage = (error) => {
       return error.response.data.detail.map((d) => d.msg || d.message).join(', ');
     }
   }
+
+  // Actionable diagnostic when network connection fails
+  if (!error.response && (error.message === 'Network Error' || error.code === 'ERR_NETWORK')) {
+    if (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app')) {
+      return `Network Error: Cannot connect to backend (${API_BASE_URL}). If deployed on Vercel, please verify your backend is deployed and VITE_API_BASE_URL is set in your Vercel frontend project settings.`;
+    }
+    return `Network Error: Cannot reach backend server at ${API_BASE_URL}. Please ensure the backend is running.`;
+  }
+
   if (error.message) return error.message;
   return 'An unexpected network error occurred';
 };

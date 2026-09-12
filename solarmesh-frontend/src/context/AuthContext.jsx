@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { authApi } from '../api/auth';
+import { extractErrorMessage } from '../api/client';
 import {
   getAccessToken,
   getRefreshToken,
@@ -66,7 +67,7 @@ export const AuthProvider = ({ children }) => {
       setStoredUser(profile);
       return { success: true, user: profile };
     } catch (err) {
-      const msg = err.response?.data?.detail || err.message || 'Login failed';
+      const msg = extractErrorMessage(err);
       setError(msg);
       return { success: false, error: msg };
     }
@@ -84,7 +85,7 @@ export const AuthProvider = ({ children }) => {
       setStoredUser(profile);
       return { success: true, user: profile };
     } catch (err) {
-      const msg = err.response?.data?.detail || err.message || 'Registration failed';
+      const msg = extractErrorMessage(err);
       setError(msg);
       return { success: false, error: msg };
     }
@@ -102,7 +103,7 @@ export const AuthProvider = ({ children }) => {
       setStoredUser(profile);
       return { success: true, user: profile };
     } catch (err) {
-      const msg = err.response?.data?.detail || err.message || 'Google login failed';
+      const msg = extractErrorMessage(err);
       setError(msg);
       return { success: false, error: msg };
     }
