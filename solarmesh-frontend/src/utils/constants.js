@@ -6,8 +6,12 @@ const resolveApiBaseUrl = () => {
 
   if (typeof window !== 'undefined') {
     const { hostname, protocol } = window.location;
+    // When running on Vercel
+    if (hostname.includes('vercel.app')) {
+      return 'https://solarmesh-backend.vercel.app';
+    }
     // When accessing from a mobile phone or another device on the same Wi-Fi LAN
-    if (hostname !== 'localhost' && hostname !== '127.0.0.1' && !hostname.includes('vercel.app')) {
+    if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
       return `${protocol}//${hostname}:8000`;
     }
   }
@@ -23,8 +27,11 @@ const resolveWsBaseUrl = () => {
 
   if (typeof window !== 'undefined') {
     const { hostname, protocol } = window.location;
+    if (hostname.includes('vercel.app')) {
+      return 'wss://solarmesh-backend.vercel.app/ws/live';
+    }
     const wsProto = protocol === 'https:' ? 'wss:' : 'ws:';
-    if (hostname !== 'localhost' && hostname !== '127.0.0.1' && !hostname.includes('vercel.app')) {
+    if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
       return `${wsProto}//${hostname}:8000/ws/live`;
     }
   }

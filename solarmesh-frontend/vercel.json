@@ -1,6 +1,14 @@
 {
   "rewrites": [
     {
+      "source": "/api/:path*",
+      "destination": "https://solarmesh-backend.vercel.app/api/:path*"
+    },
+    {
+      "source": "/health",
+      "destination": "https://solarmesh-backend.vercel.app/health"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
