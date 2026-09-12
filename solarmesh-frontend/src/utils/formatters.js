@@ -1,9 +1,9 @@
 // Formatting utilities for energy, currency, timestamps, and hashes
 
-export const formatCurrency = (val, currency = '$', decimals = 2) => {
+export const formatCurrency = (val, currency = '₹', decimals = 2) => {
   const num = Number(val);
   if (isNaN(num)) return `${currency}0.00`;
-  return `${currency}${num.toLocaleString('en-US', {
+  return `${currency}${num.toLocaleString('en-IN', {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   })}`;

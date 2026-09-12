@@ -10,6 +10,7 @@ import {
   Battery,
   History,
   Check,
+  Send,
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/useToast';
@@ -35,6 +36,13 @@ export const Profile = () => {
   const [isDepositOpen, setIsDepositOpen] = useState(false);
   const [depositAmount, setDepositAmount] = useState('100');
   const [depositing, setDepositing] = useState(false);
+
+  // Transfer funds modal
+  const [isTransferOpen, setIsTransferOpen] = useState(false);
+  const [transferEmail, setTransferEmail] = useState('');
+  const [transferAmount, setTransferAmount] = useState('50');
+  const [transferMemo, setTransferMemo] = useState('');
+  const [transferring, setTransferring] = useState(false);
 
   // Register device modal
   const [isDeviceModalOpen, setIsDeviceModalOpen] = useState(false);
@@ -72,13 +80,40 @@ export const Profile = () => {
     try {
       setDepositing(true);
       await walletApi.depositSelf(Number(depositAmount));
-      toast.success(`Deposited $${Number(depositAmount).toFixed(2)} test funds`);
+      toast.success(`Deposited ₹${Number(depositAmount).toFixed(2)} test funds`);
       await loadData();
       setIsDepositOpen(false);
     } catch (err) {
       toast.error('Deposit error: ' + (err.response?.data?.detail || err.message));
     } finally {
       setDepositing(false);
+    }
+  };
+
+  const handleTransferFunds = async (e) => {
+    e.preventDefault();
+    const cleanEmail = transferEmail.trim().toLowerCase();
+    if (!cleanEmail) {
+      toast.error('Please enter a recipient email');
+      return;
+    }
+    const amt = Number(transferAmount);
+    if (!amt || amt <= 0) {
+      toast.error('Please enter a valid transfer amount');
+      return;
+    }
+    try {
+      setTransferring(true);
+      await walletApi.transferFunds(cleanEmail, amt, transferMemo);
+      toast.success(`Successfully transferred ₹${amt.toFixed(2)} to ${cleanEmail}`);
+      await loadData();
+      setIsTransferOpen(false);
+      setTransferEmail('');
+      setTransferMemo('');
+    } catch (err) {
+      toast.error('Transfer failed: ' + (err.response?.data?.detail || err.message));
+    } finally {
+      setTransferring(false);
     }
   };
 
@@ -144,14 +179,24 @@ export const Profile = () => {
           icon={Wallet}
           className="lg:col-span-2"
           action={
-            <Button
-              variant="primary"
-              size="xs"
-              icon={PlusCircle}
-              onClick={() => setIsDepositOpen(true)}
-            >
-              Add Test Funds
-            </Button>
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="secondary"
+                size="xs"
+                icon={Send}
+                onClick={() => setIsTransferOpen(true)}
+              >
+                Transfer Funds
+              </Button>
+              <Button
+                variant="primary"
+                size="xs"
+                icon={PlusCircle}
+                onClick={() => setIsDepositOpen(true)}
+              >
+                Add Test Funds
+              </Button>
+            </div>
           }
         >
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
@@ -284,8 +329,8 @@ export const Profile = () => {
       <Modal
         isOpen={isDepositOpen}
         onClose={() => setIsDepositOpen(false)}
-        title="Wallet Testnet Faucet"
-        subtitle="Instantly deposit mock USD testnet currency into your wallet"
+        title="Wallet Balance Faucet"
+        subtitle="Instantly credit test Indian Rupee (₹) funds to your wallet for testing"
       >
         <div className="space-y-4">
           <div className="grid grid-cols-3 gap-2">
@@ -300,14 +345,14 @@ export const Profile = () => {
                     : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
                 }`}
               >
-                ${amt}
+                ₹{amt}
               </button>
             ))}
           </div>
 
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1">
-              Custom Amount ($)
+              Custom Amount (₹)
             </label>
             <input
               type="number"
@@ -332,6 +377,113 @@ export const Profile = () => {
             </Button>
           </div>
         </div>
+      </Modal>
+
+      {/* Peer-to-Peer Transfer Funds Modal */}
+      <Modal
+        isOpen={isTransferOpen}
+        onClose={() => setIsTransferOpen(false)}
+        title="Transfer Funds to Peer"
+        subtitle="Send Indian Rupees (₹) directly to another community member's wallet"
+      >
+        <form onSubmit={handleTransferFunds} className="space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">
+              Recipient Email Address
+            </label>
+            <input
+              type="email"
+              placeholder="e.g. bob@demo.io or carol@demo.io"
+              value={transferEmail}
+              onChange={(e) => setTransferEmail(e.target.value)}
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-medium bg-white text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+              required
+            />
+            <div className="flex items-center space-x-2 mt-1.5 text-[11px] text-slate-500">
+              <span>Quick select:</span>
+              {['alice@demo.io', 'bob@demo.io', 'carol@demo.io']
+                .filter((em) => em !== user?.email)
+                .map((em) => (
+                  <button
+                    key={em}
+                    type="button"
+                    onClick={() => setTransferEmail(em)}
+                    className="text-emerald-700 hover:underline font-semibold cursor-pointer"
+                  >
+                    {em.split('@')[0]}
+                  </button>
+                ))}
+            </div>
+          </div>
+
+          <div>
+            <div className="flex justify-between items-center mb-1">
+              <label className="block text-xs font-semibold text-slate-700">
+                Amount to Send (₹)
+              </label>
+              <span className="text-[11px] text-slate-500">
+                Available: {formatCurrency(wallet?.available ?? 0)}
+              </span>
+            </div>
+            <div className="relative">
+              <span className="absolute left-3 top-2 text-slate-400 font-bold text-xs">₹</span>
+              <input
+                type="number"
+                step="0.5"
+                min="0.5"
+                max={wallet?.available || 100000}
+                value={transferAmount}
+                onChange={(e) => setTransferAmount(e.target.value)}
+                className="w-full pl-7 pr-3 py-2 border border-slate-300 rounded-lg text-xs font-semibold bg-white text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                required
+              />
+            </div>
+            {/* Preset quick buttons */}
+            <div className="flex items-center space-x-2 mt-2">
+              {['20', '50', '100', '200'].map((amt) => (
+                <button
+                  key={amt}
+                  type="button"
+                  onClick={() => setTransferAmount(amt)}
+                  className={`px-2 py-0.5 rounded text-[11px] font-medium border transition-colors cursor-pointer ${
+                    transferAmount === amt
+                      ? 'bg-slate-900 text-white border-slate-900'
+                      : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                  }`}
+                >
+                  ₹{amt}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">
+              Transfer Note / Memo (Optional)
+            </label>
+            <input
+              type="text"
+              placeholder="e.g. Clean energy payment, solar mesh contribution"
+              value={transferMemo}
+              onChange={(e) => setTransferMemo(e.target.value)}
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-medium bg-white text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+            />
+          </div>
+
+          <div className="flex justify-end space-x-3 pt-3 border-t border-slate-100">
+            <Button variant="secondary" onClick={() => setIsTransferOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="primary"
+              icon={Send}
+              isLoading={transferring}
+            >
+              Confirm Transfer
+            </Button>
+          </div>
+        </form>
       </Modal>
 
       {/* Device Registration Modal */}

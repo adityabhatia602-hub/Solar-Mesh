@@ -14,6 +14,7 @@ export const OpenOrdersTable = ({
   currentUserId = null,
   sideFilter = '',
   onSideFilterChange,
+  onTakeOrder,
 }) => {
   const SIDE_TABS = [
     { value: '', label: 'All' },
@@ -59,9 +60,10 @@ export const OpenOrdersTable = ({
                 <th className="py-2.5 px-4">User</th>
                 <th className="py-2.5 px-4">Node</th>
                 <th className="py-2.5 px-4">Energy</th>
-                <th className="py-2.5 px-4">Price</th>
+                <th className="py-2.5 px-4">Price (₹/kWh)</th>
                 <th className="py-2.5 px-4">Status</th>
                 <th className="py-2.5 px-4">Created</th>
+                <th className="py-2.5 px-4 text-right">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -101,7 +103,7 @@ export const OpenOrdersTable = ({
                       )}
                     </td>
                     <td className="py-2.5 px-4 font-semibold text-slate-800">
-                      ${Number(o.price_per_kwh || 0).toFixed(3)}/kWh
+                      ₹{Number(o.price_per_kwh || 0).toFixed(3)}/kWh
                     </td>
                     <td className="py-2.5 px-4">
                       <span
@@ -115,6 +117,23 @@ export const OpenOrdersTable = ({
                       </span>
                     </td>
                     <td className="py-2.5 px-4 text-slate-400">{formatDate(o.created_at)}</td>
+                    <td className="py-2.5 px-4 text-right">
+                      {!isMine && onTakeOrder ? (
+                        <button
+                          type="button"
+                          onClick={() => onTakeOrder(o)}
+                          className={`px-2.5 py-1 rounded text-[11px] font-bold transition-all cursor-pointer ${
+                            isOffer
+                              ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs'
+                              : 'bg-amber-600 hover:bg-amber-700 text-white shadow-2xs'
+                          }`}
+                        >
+                          {isOffer ? 'Buy Energy' : 'Sell Energy'}
+                        </button>
+                      ) : isMine ? (
+                        <span className="text-[11px] text-slate-400 italic">Your order</span>
+                      ) : null}
+                    </td>
                   </tr>
                 );
               })}

@@ -64,6 +64,8 @@ class LedgerEntryType(str, enum.Enum):
     TRADE_RECEIPT = "trade_receipt"
     NETWORK_FEE = "network_fee"
     ADJUSTMENT = "adjustment"
+    TRANSFER_OUT = "transfer_out"
+    TRANSFER_IN = "transfer_in"
 
 
 class DeviceStatus(str, enum.Enum):

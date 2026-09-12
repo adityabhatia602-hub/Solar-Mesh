@@ -62,6 +62,21 @@ def list_edges(db: Session = Depends(get_db)):
 
 
 @router.get("/route", response_model=RouteQuote)
-def quote_route(from_node: str, to_node: str, db: Session = Depends(get_db)):
+@router.get("/route-quote", response_model=RouteQuote)
+def quote_route(
+    from_node: str | None = None,
+    to_node: str | None = None,
+    from_node_id: str | None = None,
+    to_node_id: str | None = None,
+    quantity_kw: float = 0.0,
+    db: Session = Depends(get_db),
+):
     """Cheapest delivery path and network cost per kWh between two nodes."""
-    return find_cheapest_route(db, from_node, to_node)
+    src = from_node or from_node_id
+    dst = to_node or to_node_id
+    if not src or not dst:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Source and destination node parameters (from_node, to_node) are required",
+        )
+    return find_cheapest_route(db, src, dst, required_kw=quantity_kw)

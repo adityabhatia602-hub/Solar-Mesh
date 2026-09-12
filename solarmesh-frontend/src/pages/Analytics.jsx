@@ -3,7 +3,7 @@ import {
   BarChart3,
   TrendingUp,
   Leaf,
-  DollarSign,
+  IndianRupee,
   Zap,
   AlertTriangle,
   Activity,
@@ -21,11 +21,13 @@ import {
 } from 'recharts';
 import { useMarket } from '../hooks/useMarket';
 import PageHeader from '../components/layout/PageHeader';
+import Button from '../components/common/Button';
 import Card from '../components/common/Card';
 import StatCard from '../components/common/StatCard';
+import ErrorMessage from '../components/common/ErrorMessage';
 import DemoSandboxDrawer from '../components/common/DemoSandboxDrawer';
 import { analyticsApi } from '../api/simulation';
-import { formatCurrency, formatKwh } from '../utils/formatters';
+import { formatCurrency, formatKwh, formatKw } from '../utils/formatters';
 import { CO2_KG_PER_KWH } from '../utils/constants';
 
 /** Live analytics: all values derived from backend aggregates, no hardcoded data. */
@@ -35,18 +37,23 @@ export const Analytics = () => {
   const [market, setMarket] = useState(null);
   const [grid, setGrid] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
+      setError(null);
       const [d, m, g] = await Promise.all([
-        analyticsApi.getDashboard(24).catch(() => null),
-        analyticsApi.getMarket().catch(() => null),
-        analyticsApi.getGrid().catch(() => null),
+        analyticsApi.getDashboard(24),
+        analyticsApi.getMarket(),
+        analyticsApi.getGrid(),
       ]);
       setDash(d);
       setMarket(m);
       setGrid(g);
+    } catch (err) {
+      console.error('Error fetching analytics:', err);
+      setError(err.response?.data?.detail || err.message || 'Failed to load analytics data.');
     } finally {
       setLoading(false);
     }
@@ -72,6 +79,14 @@ export const Analytics = () => {
         }
       />
 
+      {error && (
+        <ErrorMessage
+          title="Analytics Error"
+          message={error}
+          onRetry={fetchData}
+        />
+      )}
+
       {/* Aggregate KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
@@ -85,7 +100,7 @@ export const Analytics = () => {
           title="Total Value Settled"
           value={market ? formatCurrency(market.total_network_fees + totalTraded * (market.average_price || 0)) : '—'}
           subtitle="Energy + network fees"
-          icon={DollarSign}
+          icon={IndianRupee}
           accent="blue"
         />
         <StatCard
@@ -114,12 +129,15 @@ export const Analytics = () => {
           icon={BarChart3}
         >
           {timeseries.length === 0 ? (
-            <div className="h-64 flex flex-col items-center justify-center text-slate-400 text-xs space-y-2">
-              <Activity className="w-6 h-6 text-slate-300" />
-              <p>No telemetry data yet — start the simulation to collect analytics.</p>
+            <div className="h-64 flex flex-col items-center justify-center text-slate-400 text-xs space-y-2 text-center p-4">
+              <Activity className="w-8 h-8 text-slate-300" />
+              <p className="font-semibold text-slate-600">No telemetry readings yet</p>
+              <p className="text-slate-400 max-w-xs">
+                Start the digital-twin simulation or submit telemetry to view live generation and consumption trends.
+              </p>
             </div>
           ) : (
-            <div className="h-64 sm:h-72 w-full pt-2">
+            <div className="h-64 sm:h-72 w-full pt-2 min-h-[260px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={timeseries} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
@@ -160,7 +178,7 @@ export const Analytics = () => {
                 </div>
                 <div className="flex justify-between text-slate-600">
                   <span>Load:</span>
-                  <span>{formatKwh(grid.highest_load_edge.load_kw, 2)}</span>
+                  <span>{formatKw(grid.highest_load_edge.load_kw, 2)}</span>
                 </div>
                 <div className="flex justify-between text-slate-600">
                   <span>Utilization:</span>
@@ -200,7 +218,7 @@ export const Analytics = () => {
               <div className="grid grid-cols-2 gap-2 text-[11px]">
                 <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200">
                   <span className="text-slate-500 block">Total grid load</span>
-                  <span className="font-bold text-slate-800">{formatKwh(grid.total_load_kw, 2)}</span>
+                  <span className="font-bold text-slate-800">{formatKw(grid.total_load_kw, 2)}</span>
                 </div>
                 <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200">
                   <span className="text-slate-500 block">Congestion events (24h)</span>
@@ -210,7 +228,14 @@ export const Analytics = () => {
             </div>
           ) : (
             <div className="h-64 flex items-center justify-center text-slate-400 text-xs">
-              Loading grid analytics...
+              {loading ? (
+                <div className="flex items-center space-x-2">
+                  <RefreshCw className="w-4 h-4 animate-spin text-slate-400" />
+                  <span>Loading grid analytics...</span>
+                </div>
+              ) : (
+                <p>No grid corridor data available.</p>
+              )}
             </div>
           )}
         </Card>
@@ -218,13 +243,13 @@ export const Analytics = () => {
 
       {/* Market summary */}
       {market && (
-        <Card title="Market Summary" subtitle="All-time market aggregates" icon={DollarSign}>
+        <Card title="Market Summary" subtitle="All-time market aggregates" icon={IndianRupee}>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-1">
             {[
               ['Buy Volume', formatKwh(market.buy_volume_kwh, 1)],
               ['Sell Volume', formatKwh(market.sell_volume_kwh, 1)],
               ['Matched', formatKwh(market.matched_volume_kwh, 1)],
-              ['Avg Price', `$${market.average_price?.toFixed(3) ?? '—'}`],
+              ['Avg Price', `₹${market.average_price?.toFixed(3) ?? '—'}`],
               ['Avg Loss', formatKwh(market.average_loss_kwh, 3)],
               ['Network Fees', formatCurrency(market.total_network_fees)],
             ].map(([label, value]) => (

@@ -16,7 +16,13 @@ router = APIRouter(prefix="/api/market", tags=["market"])
 @router.post("/orders", response_model=OrderOut, status_code=status.HTTP_201_CREATED)
 def place_order(payload: OrderCreate, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     try:
-        return market_service.place_order(db, user, payload)
+        order = market_service.place_order(db, user, payload)
+        try:
+            market_service.run_matching(db)
+            db.refresh(order)
+        except Exception:
+            pass
+        return order
     except market_service.MarketError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
@@ -79,6 +85,7 @@ def list_trades(
 
 
 @router.post("/match", response_model=MatchResult)
+@router.post("/clear", response_model=MatchResult)
 def trigger_matching(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Run the matching engine across all open orders."""
     return market_service.run_matching(db)

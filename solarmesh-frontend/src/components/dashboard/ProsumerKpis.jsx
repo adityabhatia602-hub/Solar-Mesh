@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sun, DollarSign, Battery, Leaf, TrendingUp, Zap } from 'lucide-react';
+import { Sun, IndianRupee, Battery, Leaf, TrendingUp, Zap } from 'lucide-react';
 import StatCard from '../common/StatCard';
 import { formatCurrency, formatKwh } from '../../utils/formatters';
 import { CO2_KG_PER_KWH } from '../../utils/constants';
@@ -49,7 +49,7 @@ export const ProsumerKpis = ({
         title="Wallet Balance"
         value={formatCurrency(balance)}
         subtitle={`${formatKwh(energySold, 1)} sold lifetime`}
-        icon={DollarSign}
+        icon={IndianRupee}
         accent="blue"
         trend={totalRevenue > 0 ? `${formatCurrency(totalRevenue)} traded recently` : 'No trades yet'}
         trendDirection={totalRevenue > 0 ? 'up' : 'flat'}

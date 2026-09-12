@@ -96,6 +96,12 @@ class DepositRequest(BaseModel):
     amount: float = Field(gt=0, le=100000)
 
 
+class TransferRequest(BaseModel):
+    recipient_email: str = Field(min_length=3, max_length=255)
+    amount: float = Field(gt=0, le=100000)
+    memo: str | None = Field(default=None, max_length=255)
+
+
 # ---------------------------------------------------------------- devices / grid
 
 class DeviceCreate(BaseModel):

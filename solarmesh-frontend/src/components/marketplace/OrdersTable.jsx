@@ -35,7 +35,7 @@ export const OrdersTable = ({ orders = [], onCancelOrder, cancellingId }) => {
         <thead className="bg-slate-50/80 text-[11px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-200/80">
           <tr>
             <th className="py-3 px-4">Listing Type</th>
-            <th className="py-3 px-4">Price ($/kWh)</th>
+            <th className="py-3 px-4">Price (₹/kWh)</th>
             <th className="py-3 px-4">Energy Amount</th>
             <th className="py-3 px-4">Fill Progress</th>
             <th className="py-3 px-4">Status</th>
@@ -63,7 +63,7 @@ export const OrdersTable = ({ orders = [], onCancelOrder, cancellingId }) => {
                   </span>
                 </td>
                 <td className="py-3 px-4 font-bold text-slate-800">
-                  {formatCurrency(order.price_per_kwh, '$', 3)}
+                  {formatCurrency(order.price_per_kwh, '₹', 3)}
                 </td>
                 <td className="py-3 px-4 font-semibold text-slate-700">
                   {formatKwh(order.quantity_kwh, 1)}

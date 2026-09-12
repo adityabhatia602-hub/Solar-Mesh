@@ -1,5 +1,5 @@
 import React from 'react';
-import { Zap, DollarSign, PiggyBank, Home } from 'lucide-react';
+import { Zap, IndianRupee, PiggyBank, Home } from 'lucide-react';
 import StatCard from '../common/StatCard';
 import { formatCurrency, formatKwh } from '../../utils/formatters';
 import { UTILITY_GRID_TARIFF } from '../../utils/constants';
@@ -49,7 +49,7 @@ export const ConsumerKpis = ({
         title="Wallet Balance"
         value={formatCurrency(balance)}
         subtitle="Available for bids"
-        icon={DollarSign}
+        icon={IndianRupee}
         accent="blue"
         trend={totalSpent > 0 ? `${formatCurrency(totalSpent)} spent trading` : 'No trades yet'}
         trendDirection="flat"
@@ -57,7 +57,7 @@ export const ConsumerKpis = ({
 
       <StatCard
         title="Avg Price Paid"
-        value={avgPrice > 0 ? formatCurrency(avgPrice, '$', 3) : '—'}
+        value={avgPrice > 0 ? formatCurrency(avgPrice, '₹', 3) : '—'}
         unit={avgPrice > 0 ? '/kWh' : ''}
         subtitle={savings > 0 ? `Saved ${formatCurrency(savings)} vs utility` : `Utility ref: ${formatCurrency(UTILITY_GRID_TARIFF)}/kWh`}
         icon={PiggyBank}

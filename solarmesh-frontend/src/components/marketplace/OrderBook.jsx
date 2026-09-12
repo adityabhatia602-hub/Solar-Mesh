@@ -31,7 +31,7 @@ export const OrderBook = ({ orderBook, onSelectPrice }) => {
         <div className="flex items-center space-x-3 text-xs">
           <div className="text-right">
             <span className="text-[10px] text-slate-400 block font-medium">Average Price</span>
-            <span className="font-bold text-slate-800">{formatCurrency(midpoint, '$', 3)}/kWh</span>
+            <span className="font-bold text-slate-800">{formatCurrency(midpoint, '₹', 3)}/kWh</span>
           </div>
         </div>
       </div>
@@ -76,7 +76,7 @@ export const OrderBook = ({ orderBook, onSelectPrice }) => {
                       style={{ width: `${depthPct}%` }}
                     />
                     <span className="font-semibold text-slate-800 z-10">
-                      {formatCurrency(o.price_per_kwh, '$', 3)}/kWh
+                      {formatCurrency(o.price_per_kwh, '₹', 3)}/kWh
                     </span>
                     <span className="text-right font-medium text-slate-700 z-10">
                       {formatKwh(o.quantity_kwh, 1)}
@@ -122,7 +122,7 @@ export const OrderBook = ({ orderBook, onSelectPrice }) => {
                       style={{ width: `${depthPct}%` }}
                     />
                     <span className="font-semibold text-emerald-800 z-10">
-                      {formatCurrency(b.price_per_kwh, '$', 3)}/kWh
+                      {formatCurrency(b.price_per_kwh, '₹', 3)}/kWh
                     </span>
                     <span className="text-right font-medium text-slate-700 z-10">
                       {formatKwh(b.quantity_kwh, 1)}

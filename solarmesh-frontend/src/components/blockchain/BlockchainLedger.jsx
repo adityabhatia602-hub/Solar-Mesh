@@ -44,10 +44,10 @@ export const BlockchainLedger = ({ trades = [] }) => {
           </div>
           <div>
             <h3 className="text-base font-bold text-white">
-              Automated Microgrid Settlement Ledger
+              Settlement Ledger
             </h3>
             <p className="text-xs text-slate-400">
-              Double-entry cryptographic ledger guaranteeing instantaneous prosumer payment upon verified smart meter telemetry.
+              Every trade is recorded with a unique hash for verification and dispute resolution.
             </p>
           </div>
         </div>
@@ -55,22 +55,22 @@ export const BlockchainLedger = ({ trades = [] }) => {
         {/* Technical Ledger Specs */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 text-xs">
           <div className="p-2.5 rounded-xl bg-white/5 border border-white/10">
-            <span className="text-[10px] text-slate-400 block">Consensus Protocol</span>
+            <span className="text-[10px] text-slate-400 block">Settlement Type</span>
             <span className="font-bold text-white text-xs">{BLOCKCHAIN_CONFIG.CONSENSUS}</span>
           </div>
           <div className="p-2.5 rounded-xl bg-white/5 border border-white/10">
-            <span className="text-[10px] text-slate-400 block">Settlement Finality</span>
-            <span className="font-bold text-white text-xs">Sub-second (&lt;{BLOCKCHAIN_CONFIG.BLOCK_TIME_SEC}s)</span>
+            <span className="text-[10px] text-slate-400 block">Finality</span>
+            <span className="font-bold text-white text-xs">Instant (&lt;{BLOCKCHAIN_CONFIG.BLOCK_TIME_SEC}s)</span>
           </div>
           <div className="p-2.5 rounded-xl bg-white/5 border border-white/10">
-            <span className="text-[10px] text-slate-400 block">Escrow Contract</span>
+            <span className="text-[10px] text-slate-400 block">Ledger Contract</span>
             <span className="font-mono font-bold text-emerald-400 text-xs">
               {formatHash(BLOCKCHAIN_CONFIG.SETTLEMENT_CONTRACT, 8, 6)}
             </span>
           </div>
           <div className="p-2.5 rounded-xl bg-white/5 border border-white/10">
             <span className="text-[10px] text-slate-400 block">Clearing Asset</span>
-            <span className="font-bold text-slate-200 text-xs">USD-Mesh Stablecoin (USDM)</span>
+            <span className="font-bold text-slate-200 text-xs">Indian Rupee (₹ INR)</span>
           </div>
         </div>
       </div>
@@ -80,14 +80,14 @@ export const BlockchainLedger = ({ trades = [] }) => {
         <div className="p-4 sm:px-6 border-b border-slate-100 flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <ShieldCheck className="w-4 h-4 text-emerald-600" />
-            <h4 className="text-sm font-bold text-slate-800">Verified Settlement Transaction Log</h4>
+            <h4 className="text-sm font-bold text-slate-800">Verified Settlement Log</h4>
           </div>
           <Badge variant="emerald" dot>Instant Finality</Badge>
         </div>
 
         {trades.length === 0 ? (
           <div className="py-12 text-center text-slate-400 text-xs">
-            No on-chain settlements recorded yet. Place orders and run matching to trigger escrow releases.
+            No settlements recorded yet. Place orders and run matching to generate trade records.
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -165,7 +165,7 @@ export const BlockchainLedger = ({ trades = [] }) => {
           isOpen={!!selectedTx}
           onClose={() => setSelectedTx(null)}
           title="Settlement Transaction Receipt"
-          subtitle={`Verified on SolarMesh Private Rollup (Chain ID ${BLOCKCHAIN_CONFIG.CHAIN_ID})`}
+          subtitle={`Verified on ${BLOCKCHAIN_CONFIG.NETWORK_NAME}`}
           maxWidth="max-w-xl"
         >
           <div className="space-y-4 font-mono text-xs">
@@ -191,13 +191,13 @@ export const BlockchainLedger = ({ trades = [] }) => {
                 <div className="text-emerald-400 break-all">{BLOCKCHAIN_CONFIG.SETTLEMENT_CONTRACT}</div>
               </div>
               <div>
-                <span className="text-slate-500">Gas & Wheeling Subsidy:</span>
-                <div className="text-white">Zero-fee microgrid subsidy applied</div>
+                <span className="text-slate-500">Settlement Fee:</span>
+                <div className="text-white">Zero-fee (platform-subsidized)</div>
               </div>
             </div>
 
             <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5 font-sans">
-              <span className="text-xs font-bold text-slate-800 block">Settlement Event Signatures:</span>
+              <span className="text-xs font-bold text-slate-800 block">Settlement Event Details:</span>
               <div className="text-xs text-slate-600 font-mono space-y-1">
                 <div className="p-2 bg-white rounded border border-slate-200">
                   <span className="text-emerald-600 font-bold">event EnergyDelivered(</span>
@@ -209,8 +209,8 @@ export const BlockchainLedger = ({ trades = [] }) => {
                 </div>
 
                 <div className="p-2 bg-white rounded border border-slate-200">
-                  <span className="text-indigo-600 font-bold">event PaymentEscrowReleased(</span>
-                  <div>&nbsp;&nbsp;amount_usdm: {selectedTx.trade.total_amount},</div>
+                  <span className="text-indigo-600 font-bold">event PaymentReleased(</span>
+                  <div>&nbsp;&nbsp;amount_inr: {selectedTx.trade.total_amount},</div>
                   <div>&nbsp;&nbsp;disbursed_to_seller: true</div>
                   <span className="text-indigo-600 font-bold">)</span>
                 </div>

@@ -72,7 +72,7 @@ export const PlaceOrderModal = ({
       return;
     }
     if (numPrice <= 0) {
-      setError('Price per kWh must be greater than $0.00');
+      setError('Price per kWh must be greater than ₹0.00');
       return;
     }
     if (numQty <= 0) {
@@ -204,14 +204,14 @@ export const PlaceOrderModal = ({
         <div>
           <div className="flex items-center justify-between mb-1">
             <label className="text-xs font-semibold text-slate-700">
-              Unit Price ($/kWh)
+              Unit Price (₹/kWh)
             </label>
             <span className="text-[11px] text-slate-500 font-medium">
-              Utility Grid Tariff: ~$0.28/kWh
+              Utility Grid Tariff: ~₹0.28/kWh
             </span>
           </div>
           <div className="relative">
-            <span className="absolute left-3 top-2 text-slate-400 text-xs font-bold">$</span>
+            <span className="absolute left-3 top-2 text-slate-400 text-xs font-bold">₹</span>
             <input
               type="number"
               step="0.001"
@@ -237,7 +237,7 @@ export const PlaceOrderModal = ({
               }`}
             >
               <span className="text-[10px] font-bold block">⚡ Fast Match</span>
-              <span className="text-[10px] text-slate-500">$0.14/kWh</span>
+              <span className="text-[10px] text-slate-500">₹0.14/kWh</span>
             </button>
 
             <button
@@ -250,7 +250,7 @@ export const PlaceOrderModal = ({
               }`}
             >
               <span className="text-[10px] font-bold block">⚖️ Fair Market</span>
-              <span className="text-[10px] text-slate-500">$0.18/kWh</span>
+              <span className="text-[10px] text-slate-500">₹0.18/kWh</span>
             </button>
 
             <button
@@ -263,7 +263,7 @@ export const PlaceOrderModal = ({
               }`}
             >
               <span className="text-[10px] font-bold block">💎 Peak Value</span>
-              <span className="text-[10px] text-slate-500">$0.22/kWh</span>
+              <span className="text-[10px] text-slate-500">₹0.22/kWh</span>
             </button>
           </div>
         </div>

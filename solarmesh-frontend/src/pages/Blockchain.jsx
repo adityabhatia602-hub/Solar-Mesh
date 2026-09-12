@@ -30,8 +30,8 @@ export const Blockchain = () => {
   return (
     <div className="space-y-6 sm:space-y-8">
       <PageHeader
-        title="Blockchain Settlement & Smart Escrow Explorer"
-        subtitle="Verifiable ledger proofs, cryptographic trade hashes, and sub-second PoA consensus finality"
+        title="Settlement Ledger"
+        subtitle="Verified trade records with tamper-proof receipts and instant settlement"
         actions={
           <Button
             variant="secondary"

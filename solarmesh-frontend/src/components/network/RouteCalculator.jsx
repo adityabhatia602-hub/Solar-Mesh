@@ -31,7 +31,7 @@ export const RouteCalculator = ({ nodes = [] }) => {
         toast.success(
           `Computed optimal delivery path (${data.path_node_ids?.length || 0} nodes, ${formatCurrency(
             data.total_network_cost_per_kwh,
-            '$',
+            '₹',
             4
           )}/kWh delivery fee)`
         );
@@ -170,13 +170,13 @@ export const RouteCalculator = ({ nodes = [] }) => {
             <div>
               <span className="text-[10px] text-slate-500 block">Congestion Penalty</span>
               <span className="font-bold text-amber-700">
-                {formatCurrency(quote.congestion_penalty, '$', 4)}/kWh
+                {formatCurrency(quote.congestion_penalty, '₹', 4)}/kWh
               </span>
             </div>
             <div>
               <span className="text-[10px] text-slate-500 block">Total Grid Delivery Fee</span>
               <span className="font-bold text-emerald-700 text-sm">
-                {formatCurrency(quote.total_network_cost_per_kwh, '$', 4)}/kWh
+                {formatCurrency(quote.total_network_cost_per_kwh, '₹', 4)}/kWh
               </span>
             </div>
           </div>

@@ -286,8 +286,8 @@ def _build_explanation(
         "network_cost_total": round(network_cost, 4),
         "buyer_total": round(buyer_pays, 4),
         "reason": (
-            f"Buyer bid ${float(bid.price_per_kwh):.2f}/kWh covered the seller ask "
-            f"${float(offer.price_per_kwh):.2f}/kWh plus ${route.total_network_cost_per_kwh:.4f}/kWh "
+            f"Buyer bid ₹{float(bid.price_per_kwh):.2f}/kWh covered the seller ask "
+            f"₹{float(offer.price_per_kwh):.2f}/kWh plus ₹{route.total_network_cost_per_kwh:.4f}/kWh "
             f"network delivery over {len(route.path_node_ids) - 1} hop(s); the path had sufficient spare capacity."
         ),
     }
@@ -328,7 +328,7 @@ def _settle_trade(
     if network_cost > 0:
         apply_ledger_entry(
             db, bid_wallet, LedgerEntryType.NETWORK_FEE,
-            0.0, reference=None, memo=f"Network fee ${network_cost:.4f} included in payment",
+            0.0, reference=None, memo=f"Network fee ₹{network_cost:.4f} included in payment",
         )
 
     # Release the escrowed portion this fill consumes.
@@ -476,7 +476,7 @@ def run_matching(db: Session) -> dict:
         event_bus.publish_threadsafe("grid", {"type": "trade_settled", "data": t_dict})
         event_bus.publish_threadsafe("grid", {"type": "grid_update"})
 
-    logger.info("Matching cycle: %d trades, %.2f kWh, $%.4f, loss %.3f kWh",
+    logger.info("Matching cycle: %d trades, %.2f kWh, ₹%.4f, loss %.3f kWh",
                 len(trades), total_volume, total_value, total_loss)
     return {
         "matched_trades": len(trades),

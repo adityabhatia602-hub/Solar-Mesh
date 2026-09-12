@@ -310,13 +310,13 @@ export const Dashboard = () => {
                       {formatKwh(t.delivered_kwh ?? t.quantity_kwh)}
                     </td>
                     <td className="py-2.5 px-4 font-semibold text-slate-800">
-                      ${Number(t.price_per_kwh || 0).toFixed(3)}/kWh
+                      ₹{Number(t.price_per_kwh || 0).toFixed(3)}/kWh
                     </td>
                     <td className="py-2.5 px-4 font-mono text-[10px] text-slate-500">
                       {(t.path_nodes || []).join(' → ') || '—'}
                     </td>
                     <td className="py-2.5 px-4 font-bold text-slate-900">
-                      ${Number(t.total_amount || 0).toFixed(2)}
+                      ₹{Number(t.total_amount || 0).toFixed(2)}
                     </td>
                     <td className="py-2.5 px-4 text-slate-400">
                       {t.created_at ? new Date(t.created_at).toLocaleString() : '—'}

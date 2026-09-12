@@ -28,4 +28,13 @@ export const walletApi = {
     });
     return response.data;
   },
+
+  transferFunds: async (recipientEmail, amount, memo = '') => {
+    const response = await apiClient.post('/api/wallet/transfer', {
+      recipient_email: recipientEmail,
+      amount: Number(amount),
+      memo: memo || undefined,
+    });
+    return response.data;
+  },
 };

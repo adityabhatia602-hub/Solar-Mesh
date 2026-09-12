@@ -165,8 +165,8 @@ export const Navbar = ({ onToggleSidebar, walletBalance, onWalletRefresh }) => {
       <Modal
         isOpen={isDepositOpen}
         onClose={() => setIsDepositOpen(false)}
-        title="Wallet Testnet Faucet"
-        subtitle="Add mock USD currency to simulate energy purchases and escrow collateral"
+        title="Wallet Balance Faucet"
+        subtitle="Add test Indian Rupee (₹) funds to simulate energy purchases and settlements"
       >
         <div className="space-y-4">
           <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-emerald-800 flex items-start space-x-2">
@@ -193,13 +193,13 @@ export const Navbar = ({ onToggleSidebar, walletBalance, onWalletRefresh }) => {
                       : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
                   }`}
                 >
-                  ${amt}
+                  ₹{amt}
                 </button>
               ))}
             </div>
 
             <div className="relative">
-              <span className="absolute left-3 top-2.5 text-slate-400 font-semibold text-xs">$</span>
+              <span className="absolute left-3 top-2.5 text-slate-400 font-semibold text-xs">₹</span>
               <input
                 type="number"
                 min="1"

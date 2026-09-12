@@ -39,6 +39,7 @@ export const Marketplace = () => {
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
   const [modalSide, setModalSide] = useState(isProsumer ? 'offer' : 'bid');
   const [modalPrice, setModalPrice] = useState('');
+  const [modalQuantity, setModalQuantity] = useState('');
   const [cancellingId, setCancellingId] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -91,6 +92,15 @@ export const Marketplace = () => {
   const handleSelectPriceFromBook = (price, sideToTake) => {
     setModalPrice(price.toString());
     setModalSide(sideToTake);
+    setModalQuantity('');
+    setIsOrderModalOpen(true);
+  };
+
+  const handleTakeOrder = (order) => {
+    const counterSide = order.side === 'offer' ? 'bid' : 'offer';
+    setModalSide(counterSide);
+    setModalPrice(String(order.price_per_kwh));
+    setModalQuantity(String(order.remaining_kwh || order.quantity_kwh));
     setIsOrderModalOpen(true);
   };
 
@@ -159,6 +169,7 @@ export const Marketplace = () => {
         currentUserId={user?.id}
         sideFilter={sideFilter}
         onSideFilterChange={setSideFilter}
+        onTakeOrder={handleTakeOrder}
       />
 
       {/* User's Orders Section */}
@@ -197,6 +208,7 @@ export const Marketplace = () => {
         onClose={() => setIsOrderModalOpen(false)}
         initialSide={modalSide}
         initialPrice={modalPrice}
+        initialQuantity={modalQuantity}
         onOrderPlaced={loadMarketData}
       />
 

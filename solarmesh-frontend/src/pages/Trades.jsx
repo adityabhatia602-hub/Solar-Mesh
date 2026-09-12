@@ -211,12 +211,12 @@ export const Trades = () => {
                         {formatKwh(trade.quantity_kwh)}
                       </td>
                       <td className="py-3 px-4 font-semibold text-slate-800">
-                        {formatCurrency(trade.price_per_kwh, '$', 3)}/kWh
+                        {formatCurrency(trade.price_per_kwh, '₹', 3)}/kWh
                       </td>
-                      <td className="py-3 px-4 text-emerald-700 font-semibold">
-                        +{formatCurrency(trade.network_cost_per_kwh, '$', 3)}
+                      <td className="py-3 px-4 text-emerald-700">
+                        +{formatCurrency(trade.network_cost_per_kwh, '₹', 3)}
                       </td>
-                      <td className="py-3 px-4 font-bold text-slate-900">
+                      <td className="py-3 px-4 font-semibold text-slate-900 text-right">
                         {formatCurrency(trade.total_amount)}
                       </td>
                       <td className="py-3 px-4 text-slate-400">{formatDate(trade.created_at)}</td>
