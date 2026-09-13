@@ -359,7 +359,7 @@ def _settle_trade(
     db.flush()
 
     offer.filled_kwh = float(offer.filled_kwh) + qty
-    bid.filled_kwh = float(bid.filled_kwh) + delivered  # buyer receives net energy
+    bid.filled_kwh = float(bid.filled_kwh) + qty  # track gross to keep remaining_kwh consistent
     if offer.remaining_kwh <= 0:
         offer.status = OrderStatus.FILLED
     else:
@@ -445,7 +445,7 @@ def run_matching(db: Session) -> dict:
                 remaining_bid = 0
                 break
 
-            remaining_bid -= trade.delivered_kwh
+            remaining_bid -= float(trade.quantity_kwh)
             total_volume += float(trade.quantity_kwh)
             total_value += float(trade.total_amount)
             total_loss += float(trade.energy_loss_kwh)

@@ -148,7 +148,8 @@ def deposit(
     target_user = db.get(User, target_id)
     if target_user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Target user not found")
-    return _apply_adjustment(payload, target_user, db)
+    wallet = _apply_adjustment(payload, target_user, db)
+    return WalletOut.model_validate(wallet)
 
 
 
@@ -186,7 +187,8 @@ def deposit_self(
         raise
 
 
-def _apply_adjustment(payload: DepositRequest, user: User, db: Session) -> WalletOut:
+def _apply_adjustment(payload: DepositRequest, user: User, db: Session) -> "Wallet":
+    from app.models import Wallet
     wallet = get_or_create_wallet(db, user.id)
     try:
         apply_ledger_entry(

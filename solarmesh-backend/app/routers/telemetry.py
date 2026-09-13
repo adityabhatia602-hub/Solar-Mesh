@@ -13,7 +13,6 @@ from app.dependencies import get_current_user
 from app.models import Device, Telemetry, User
 from app.schemas import TelemetryIn, TelemetryOut
 from app.security import decode_token
-from app.services.grid_service import update_node_congestion
 
 router = APIRouter(tags=["telemetry"])
 
@@ -80,7 +79,7 @@ def ingest_telemetry(payload: TelemetryIn, user: User = Depends(get_current_user
     )
 
     net = production_kw - consumption_kw
-    power_kw = payload.power_kw if payload.power_kw else net
+    power_kw = payload.power_kw if payload.power_kw is not None else net
 
     reading = save_reading(
         db, device,
@@ -107,9 +106,6 @@ def ingest_telemetry(payload: TelemetryIn, user: User = Depends(get_current_user
             db, device.owner_id, device.node_id, "bid",
             quantity_kwh=-surplus, price_per_kwh=0.30, device_id=device.id,
         )
-    db.commit()
-
-    update_node_congestion(db)
     db.commit()
     return reading
 
@@ -176,7 +172,7 @@ def device_history(
 
 @router.websocket("/ws/live")
 async def live_feed(ws: WebSocket, token: str | None = None):
-    """Live event stream: {'subscribe': '<channel>'} to join; events pushed as JSON.
+    """Live event stream: {"action": "subscribe", "channel": "<name>"} to join; events pushed as JSON.
 
     Channels: 'trades', 'orders', 'telemetry', 'grid', 'simulation', or a node/user id
     for localized updates.

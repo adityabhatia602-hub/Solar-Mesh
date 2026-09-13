@@ -4,6 +4,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import logging
+import os
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -29,7 +30,6 @@ from app.routers import (
 )
 from app.services import market_service, simulation_service
 
-import os
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("solarmesh")

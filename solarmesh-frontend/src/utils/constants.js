@@ -62,8 +62,7 @@ export const ORDER_STATUS = {
 };
 
 export const TRADE_STATUS = {
-  PENDING: 'pending',
-  MATCHED: 'matched',
+  PENDING_SETTLEMENT: 'pending_settlement',
   SETTLED: 'settled',
   FAILED: 'failed',
 };

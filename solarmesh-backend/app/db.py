@@ -71,15 +71,17 @@ _INDEX_MIGRATIONS: list[str] = [
 
 def run_lightweight_migrations() -> None:
     """Create tables, ensure missing columns, and apply performance indexes."""
-    # Fast path: if schema is already initialized, skip redundant inspection and table locking
+    # Check whether base tables already exist (skip create_all if so).
+    tables_exist = False
     try:
         with engine.begin() as conn:
             conn.execute(text("SELECT 1 FROM users LIMIT 1"))
-            return
+            tables_exist = True
     except Exception:
         pass
 
-    Base.metadata.create_all(bind=engine)
+    if not tables_exist:
+        Base.metadata.create_all(bind=engine)
 
     inspector = inspect(engine)
     existing_tables = set(inspector.get_table_names())

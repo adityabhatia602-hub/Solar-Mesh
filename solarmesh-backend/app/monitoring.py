@@ -110,9 +110,9 @@ class MetricsCollector:
             count = len(latencies)
 
             avg_latency = round(sum(latencies) / count, 2) if count > 0 else 0.0
-            p50_latency = round(latencies[int(count * 0.50)], 2) if count > 0 else 0.0
-            p95_latency = round(latencies[int(count * 0.95)], 2) if count > 0 else 0.0
-            p99_latency = round(latencies[int(count * 0.99)], 2) if count > 0 else 0.0
+            p50_latency = round(latencies[min(int(count * 0.50), count - 1)], 2) if count > 0 else 0.0
+            p95_latency = round(latencies[min(int(count * 0.95), count - 1)], 2) if count > 0 else 0.0
+            p99_latency = round(latencies[min(int(count * 0.99), count - 1)], 2) if count > 0 else 0.0
 
             error_rate = (
                 round((self.status_5xx / self.total_requests) * 100, 2)
